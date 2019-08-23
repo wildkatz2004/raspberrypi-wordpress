@@ -21,33 +21,6 @@ print_text_in_color "$ICyan" "Installing Extra Security..."
 
 # Based on: http://www.techrepublic.com/blog/smb-technologist/secure-your-apache-server-from-ddos-slowloris-and-dns-injection-attacks/
 
-# Protect against DDOS
-apt update -q4 & spinner_loading
-apt -y install libapache2-mod-evasive
-mkdir -p /var/log/apache2/evasive
-chown -R www-data:root /var/log/apache2/evasive
-if [ ! -f "$ENVASIVE" ]
-then
-    touch "$ENVASIVE"
-    cat << ENVASIVE > "$ENVASIVE"
-DOSHashTableSize 2048
-DOSPageCount 20  # maximum number of requests for the same page
-DOSSiteCount 300  # total number of requests for any object by the same client IP on the same listener
-DOSPageInterval 1.0 # interval for the page count threshold
-DOSSiteInterval 1.0  # interval for the site count threshold
-DOSBlockingPeriod 10.0 # time that a client IP will be blocked for
-DOSLogDir
-ENVASIVE
-fi
-
-# Protect against Slowloris
-#apt -y install libapache2-mod-qos
-a2enmod reqtimeout # http://httpd.apache.org/docs/2.4/mod/mod_reqtimeout.html
-
-# Don't enable SpamHaus now as it's now working anyway
-# REMOVE disable of SC2154 WHEN PUTTING SPAMHAUS IN PRODUCTION (it's just to fixing travis for now) 
-exit
-
 # Protect against DNS Injection
 # Insipired by: https://www.c-rieger.de/nextcloud-13-nginx-installation-guide-for-ubuntu-18-04-lts/#spamhausproject
 
