@@ -70,8 +70,8 @@ fi
 # Change DNS
 install_if_not resolvconf
 yes | dpkg-reconfigure --frontend=noninteractive resolvconf
-echo "nameserver 9.9.9.9" > /etc/resolvconf/resolv.conf.d/base
-echo "nameserver 149.112.112.112" >> /etc/resolvconf/resolv.conf.d/base
+echo "nameserver 208.67.222.222" > /etc/resolvconf/resolv.conf.d/base
+echo "nameserver 208.67.220.220" >> /etc/resolvconf/resolv.conf.d/base
 
 # Check network
 test_connection
@@ -123,12 +123,12 @@ chown root:root $MYCNF
 
 # Install MARIADB
 apt install software-properties-common -y
-sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
-sudo add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.ddg.lth.se/mariadb/repo/10.2/ubuntu xenial main'
-sudo debconf-set-selections <<< "mariadb-server-10.2 mysql-server/root_password password $MARIADB_PASS"
-sudo debconf-set-selections <<< "mariadb-server-10.2 mysql-server/root_password_again password $MARIADB_PASS"
+#sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+#sudo add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.ddg.lth.se/mariadb/repo/10.2/ubuntu xenial main'
+sudo debconf-set-selections <<< "mariadb-server-10.3 mysql-server/root_password password $MARIADB_PASS"
+sudo debconf-set-selections <<< "mariadb-server-10.3 mysql-server/root_password_again password $MARIADB_PASS"
 apt update -q4 & spinner_loading
-check_command apt install mariadb-server-10.2 -y
+check_command apt install mariadb-server mariadb-client -y
 
 # Prepare for Wordpress installation
 # https://blog.v-gar.de/2017/02/en-solved-error-1698-28000-in-mysqlmariadb/
@@ -171,19 +171,19 @@ sudo systemctl stop nginx.service
 sudo systemctl start nginx.service
 sudo systemctl enable nginx.service
 
-# Install PHP 7.2
+# Install PHP 7.3
 apt install -y \
         php \
-	php7.2-fpm \
-	php7.2-common \
-	php7.2-mbstring \
-	php7.2-xmlrpc \
-	php7.2-gd \
-	php7.2-xml \
-	php7.2-mysql \
-	php7.2-cli \
-	php7.2-zip \
-	php7.2-curl
+	php7.3-fpm \
+	php7.3-common \
+	php7.3-mbstring \
+	php7.3-xmlrpc \
+	php7.3-gd \
+	php7.3-xml \
+	php7.3-mysql \
+	php7.3-cli \
+	php7.3-zip \
+	php7.3-curl
 	
 # Configure PHP
 sed -i "s|allow_url_fopen =.*|allow_url_fopen = On|g" /etc/php/7.2/fpm/php.ini
@@ -614,7 +614,7 @@ http {
 	include /etc/nginx/sites-enabled/*;
 
 	upstream php {
-        server unix:/run/php/php7.2-fpm.sock;
+        server unix:/run/php/php7.3-fpm.sock;
         }
 }
 
@@ -739,7 +739,7 @@ echo "opcache.memory_consumption=128"
 echo "opcache.save_comments=1"
 echo "opcache.revalidate_freq=1"
 echo "opcache.validate_timestamps=1"
-} >> /etc/php/7.2/fpm/php.ini
+} >> /etc/php/7.3/fpm/php.ini
 
 # Install Redis
 run_static_script redis-server-ubuntu
@@ -776,17 +776,8 @@ apt autoremove -y
 apt autoclean
 find /root "/home/$UNIXUSER" -type f \( -name '*.sh*' -o -name '*.html*' -o -name '*.tar*' -o -name '*.zip*' \) -delete
 
-# Install virtual kernels for Hyper-V
-# Kernel 4.15
-apt install -y --install-recommends \
-linux-virtual \
-linux-tools-virtual \
-linux-cloud-tools-virtual \
-linux-image-virtual \
-linux-image-extra-virtual
-
 # Force MOTD to show correct number of updates
-sudo /usr/lib/update-notifier/update-motd-updates-available --force
+#sudo /usr/lib/update-notifier/update-motd-updates-available --force
 
 # Prefer IPv6
 sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
