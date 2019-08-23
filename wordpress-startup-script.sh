@@ -154,7 +154,7 @@ network:
          addresses: [$LANIP] # client IP address
          gateway4: $GATEWAYIP # gateway address
          nameservers:
-           addresses: [9.9.9.9,149.112.112.112] #name servers
+           addresses: [208.67.222.222,208.67.220.220] #name servers
 IPCONFIG
 
 msg_box "These are your settings, please make sure they are correct:
@@ -170,12 +170,12 @@ then
 else
 msg_box "Network NOT OK. You must have a working network connection to run this script.
 Please contact us for support:
-https://shop.hanssonit.se/product/premium-support-per-30-minutes/
+Email: duane.britting@gmail.com
 Please also post this issue on: $ISSUES"
     exit 1
 fi
 # shellcheck source=lib.sh
-WPDB=1 && MYCNFPW=1 && FIRST_IFACE=1 && CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/techandme/wordpress-vm/master/lib.sh)
+WPDB=1 && MYCNFPW=1 && FIRST_IFACE=1 && CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 unset FIRST_IFACE
 unset CHECK_CURRENT_REPO
 unset MYCNFPW
@@ -218,7 +218,7 @@ msg_box"This script will do the final setup for you
 - Change system timezone
 - Set new password to the Linux system (user: wordpress)
 
-############### T&M Hansson IT AB -  $(date +"%Y") ###############"
+############### D&B Consulting -  $(date +"%Y") ###############"
 clear
 
 # Set keyboard layout
@@ -480,17 +480,17 @@ Login to Wordpress in your browser:
 
 SUPPORT:
 Please ask for help in the forums, or visit our shop to buy support,
-https://shop.hanssonit.se/product/premium-support-per-30-minutes/
+Email: duane.britting@gmail.com
 
 BUGS:
-Please report any bugs here: https://github.com/techandme/wordpress-vm
+Please report any bugs here: https://github.com/wildkatz2004/raspberrypi-wordpress
 
 TIPS & TRICKS:
 1. Publish your server online: https://goo.gl/iUGE2U
 2. To update this VM just type: sudo bash /var/scripts/update.sh
 3. Change IP to something outside DHCP: sudo nano /etc/netplan/01-netcfg.yaml
 
- ######################### T&M Hansson IT - $(date +"%Y") #########################  "
+ ######################### D&B Consulting - $(date +"%Y") #########################  "
 
 # Prefer IPv6
 sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
