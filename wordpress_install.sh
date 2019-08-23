@@ -8,7 +8,7 @@ sed -i "s|#precedence ::ffff:0:0/96  100|precedence ::ffff:0:0/96  100|g" /etc/g
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
-FIRST_IFACE=1 && CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/techandme/wordpress-vm/master/lib.sh)
+FIRST_IFACE=1 && CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 unset FIRST_IFACE
 unset CHECK_CURRENT_REPO
 
@@ -29,9 +29,6 @@ fi
 ram_check 1 Wordpress
 cpu_check 1 Wordpress
 
-# Set locales
-apt install language-pack-en-base -y
-sudo locale-gen "sv_SE.UTF-8" && sudo dpkg-reconfigure --frontend=noninteractive locales
 
 # Show current user
 download_static_script adduser
@@ -40,17 +37,11 @@ rm $SCRIPTS/adduser.sh
 
 # Check Ubuntu version
 print_text_in_color "$ICyan" "Checking server OS and version..."
-if [ "$OS" != 1 ]
+if [ "$OS" >= 1 ]
 then
     print_text_in_color "$IRed" "Ubuntu Server is required to run this script."
     print_text_in_color "$IRed" "Please install that distro and try again."
     exit 1
-fi
-
-
-if ! version 18.04 "$DISTRO" 18.04.4; then
-    print_text_in_color "$IRed" "Ubuntu version $DISTRO must be between 18.04 - 18.04.4"
-    exit
 fi
 
 # Check if it's a clean server
@@ -76,26 +67,6 @@ echo "nameserver 208.67.220.220" >> /etc/resolvconf/resolv.conf.d/base
 # Check network
 test_connection
 
-# Check where the best mirrors are and update
-print_text_in_color "$ICyan" "Your current server repository is: $REPO"
-if [[ "no" == $(ask_yes_or_no "Do you want to try to find a better mirror?") ]]
-then
-    print_text_in_color "$ICyan" "Keeping $REPO as mirror..."
-    sleep 1
-else
-   print_text_in_color "$ICyan" "Locating the best mirrors..."
-   apt update -q4 & spinner_loading
-   apt install python-pip -y
-   pip install \
-       --upgrade pip \
-       apt-select
-    apt-select -m up-to-date -t 5 -c
-    sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup && \
-    if [ -f sources.list ]
-    then
-        sudo mv sources.list /etc/apt/
-    fi
-fi
 clear
 
 # Set keyboard layout
