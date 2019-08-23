@@ -12,7 +12,7 @@ GPGDIR=/tmp/gpg
 
 # Ubuntu OS
 DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
-OS=$(grep -ic "Ubuntu" /etc/issue.net)
+OS=$(grep -ic "buster" /etc/os-release)
 
 # Network
 [ -n "$FIRST_IFACE" ] && IFACE=$(lshw -c network | grep "logical name" | awk '{print $3; exit}')
@@ -26,27 +26,27 @@ IFCONFIG="/sbin/ifconfig"
 INTERFACES="/etc/netplan/01-netcfg.yaml"
 NETMASK=$($IFCONFIG | grep -w inet |grep -v 127.0.0.1| awk '{print $4}' | cut -d ":" -f 2)
 GATEWAY=$(route -n|grep "UG"|grep -v "UGH"|cut -f 10 -d " ")
-DNS1="9.9.9.9"
-DNS2="149.112.112.112"
+DNS1="208.67.222.222"
+DNS2="208.67.220.220"
 
 # Repo
-GITHUB_REPO="https://raw.githubusercontent.com/techandme/wordpress-vm/master"
+GITHUB_REPO="https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master"
 STATIC="$GITHUB_REPO/static"
 LETS_ENC="$GITHUB_REPO/lets-encrypt"
-ISSUES="https://github.com/techandme/wordpress-vm/issues"
+ISSUES="https://github.com/wildkatz2004/raspberrypi-wordpress/issues"
 APP="$GITHUB_REPO/apps"
 
 # User information
-WPDBNAME=wordpress_by_www_hanssonit_se
+WPDBNAME=br_wordpress
 WPADMINUSER=change_this_user
 UNIXUSER=$SUDO_USER
 UNIXUSER_PROFILE="/home/$UNIXUSER/.bash_profile"
 ROOT_PROFILE="/root/.bash_profile"
 
 # PHP-FPM
-PHP_INI=/etc/php/7.2/fpm/php.ini
-PHP_POOL_DIR=/etc/php/7.2/fpm/pool.d
-PHP_FPM_SOCK=/var/run/php7.2-fpm-wordpress.sock
+PHP_INI=/etc/php/7.3/fpm/php.ini
+PHP_POOL_DIR=/etc/php/7.3/fpm/pool.d
+PHP_FPM_SOCK=/var/run/php7.3-fpm-wordpress.sock
 
 # MARIADB
 SHUF=$(shuf -i 25-29 -n 1)
@@ -168,9 +168,9 @@ ask_yes_or_no() {
 
 restart_webserver() {
 check_command systemctl restart nginx
-if php7.2-fpm -v > /dev/null
+if php7.3-fpm -v > /dev/null
 then
-    check_command systemctl restart php7.2-fpm.service
+    check_command systemctl restart php7.3-fpm.service
 fi
 }
 
@@ -469,6 +469,279 @@ print_text_in_color() {
 	printf "%b%s%b\n" "$1" "$2" "$Color_Off"
 }
 
+check_command_exist(){
+    if [ ! "$(command -v "${1}")" ]; then
+        log "Error" "${1} is not installed, please install it and try again."
+        exit 1
+    fi
+}
+
+get_php_extension_dir(){
+    local phpConfig=${1}
+    ${phpConfig} --extension-dir
+}
+
+get_php_version(){
+    local phpConfig=${1}
+    ${phpConfig} --version | cut -d'.' -f1-2
+}
+
+is_64bit(){
+    if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+check_installed(){
+    local cmd=${1}
+    local location=${2}
+    if [ -d "${location}" ]; then
+        log "Info" "${location} already exists, skipped the installation."
+        add_to_env "${location}"
+    else
+        ${cmd}
+    fi
+}
+
+check_ram(){
+    get_os_info
+    if [ ${ramsum} -lt 480 ]; then
+        log "Error" "Not enough memory. The LAMP installation needs memory: ${tram}MB*RAM + ${swap}MB*SWAP >= 480MB"
+        exit 1
+    fi
+    [ ${ramsum} -lt 600 ] && disable_fileinfo="--disable-fileinfo" || disable_fileinfo=""
+}
+
+raspbianversion(){
+    if check_sys sysRelease raspbian; then
+        local version=$( get_opsy )
+        local code=${1}
+        echo ${version} | grep -q "${code}"
+        if [ $? -eq 0 ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+ubuntuversion(){
+    if check_sys sysRelease ubuntu; then
+        local version=$( get_opsy )
+        local code=${1}
+        echo ${version} | grep -q "${code}"
+        if [ $? -eq 0 ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+#Check system
+check_sys(){
+    local checkType=${1}
+    local value=${2}
+
+    local release=''
+    local systemPackage=''
+
+    if [[ -f /etc/redhat-release ]]; then
+        release="centos"
+        systemPackage="yum"
+    elif cat /etc/issue | grep -Eqi "debian"; then
+        release="debian"
+        systemPackage="apt"
+    elif cat /etc/issue | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+        systemPackage="apt"
+    elif cat /etc/os-release | grep -Eqi "raspbian"; then
+        release="raspbian"
+        systemPackage="apt"
+    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+        systemPackage="yum"
+    elif cat /proc/version | grep -Eqi "debian"; then
+        release="debian"
+        systemPackage="apt"
+    elif cat /proc/version | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+        systemPackage="apt"
+    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+        systemPackage="yum"
+    fi
+
+    if [[ ${checkType} == "sysRelease" ]]; then
+        if [ "$value" == "$release" ]; then
+            return 0
+        else
+            return 1
+        fi
+    elif [[ ${checkType} == "packageManager" ]]; then
+        if [ "$value" == "$systemPackage" ]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+get_ip(){
+    local IP=$( ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1 )
+    [ -z ${IP} ] && IP=$( wget -qO- -t1 -T2 ipv4.icanhazip.com )
+    [ -z ${IP} ] && IP=$( wget -qO- -t1 -T2 ipinfo.io/ip )
+    [ ! -z ${IP} ] && echo ${IP} || echo
+}
+
+get_ip_country(){
+    local country=$( wget -qO- -t1 -T2 ipinfo.io/$(get_ip)/country )
+    [ ! -z ${country} ] && echo ${country} || echo
+}
+
+get_opsy(){
+    [ -f /etc/redhat-release ] && awk '{print ($1,$3~/^[0-9]/?$3:$4)}' /etc/redhat-release && return
+    [ -f /etc/os-release ] && awk -F'[= "]' '/PRETTY_NAME/{print $3,$4,$5}' /etc/os-release && return
+    [ -f /etc/lsb-release ] && awk -F'[="]+' '/DESCRIPTION/{print $2}' /etc/lsb-release && return
+}
+
+get_os_info(){
+    cname=$( awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//' )
+    cores=$( awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo )
+    freq=$( awk -F: '/cpu MHz/ {freq=$2} END {print freq}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//' )
+    tram=$( free -m | awk '/Mem/ {print $2}' )
+    swap=$( free -m | awk '/Swap/ {print $2}' )
+    up=$( awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60;d=$1%60} {printf("%ddays, %d:%d:%d\n",a,b,c,d)}' /proc/uptime )
+    load=$( w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//' )
+    opsy=$( get_opsy )
+    arch=$( uname -m )
+    lbit=$( getconf LONG_BIT )
+    host=$( hostname )
+    kern=$( uname -r )
+    ramsum=$( expr $tram + $swap )
+}
+
+display_os_info(){
+    clear
+    echo
+    echo "+-------------------------------------------------------------------+"
+    echo "| Auto Install LAMP(On Azure Unbuntu 16.04)                         |"
+    echo "|                                                                   |"
+    echo "|                                                                   |"
+    echo "+-------------------------------------------------------------------+"
+    echo
+    echo "--------------------- System Information ----------------------------"
+    echo
+    echo "CPU model            : ${cname}"
+    echo "Number of cores      : ${cores}"
+    echo "CPU frequency        : ${freq} MHz"
+    echo "Total amount of ram  : ${tram} MB"
+    echo "Total amount of swap : ${swap} MB"
+    echo "System uptime        : ${up}"
+    echo "Load average         : ${load}"
+    echo "OS                   : ${opsy}"
+    echo "Arch                 : ${arch} (${lbit} Bit)"
+    echo "Kernel               : ${kern}"
+    echo "Hostname             : ${host}"
+    echo "IPv4 address         : $(get_ip)"
+    echo
+    echo "---------------------------------------------------------------------"
+}
+
+#Install tools
+install_tool(){
+    log "Info" "Starting to install development tools..."
+    if check_sys packageManager apt; then
+        apt-get -y update > /dev/null 2>&1
+        apt-get -y install gcc g++ make wget perl curl bzip2 libreadline-dev net-tools python python-dev cron ca-certificates > /dev/null 2>&1
+    fi
+    log "Info" "Install development tools completed..."
+
+    check_command_exist "gcc"
+    check_command_exist "g++"
+    check_command_exist "make"
+    check_command_exist "wget"
+    check_command_exist "perl"
+    check_command_exist "netstat"
+}
+
+preinstall_lamp(){
+    check_ram
+    display_os_info
+}
+
+error_detect_depends(){
+    local command=${1}
+    local work_dir=`pwd`
+    local depend=`echo "$1" | awk '{print $4}'`
+    log "Info" "Starting to install package ${depend}"
+    ${command} > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        distro=`get_opsy`
+        version=`cat /proc/version`
+        architecture=`uname -m`
+        mem=`free -m`
+        disk=`df -ah`
+        cat >> ${cur_dir}/lamp.log<<EOF
+        Errors Detail:
+        Distributions:${distro}
+        Architecture:${architecture}
+        Version:${version}
+        Memery:
+        ${mem}
+        Disk:
+        ${disk}
+        Issue:failed to install ${depend}
+EOF
+        echo
+        echo "+------------------+"
+        echo "|  ERROR DETECTED  |"
+        echo "+------------------+"
+        echo "Installation package ${depend} failed."
+        echo "The Full Log is available at ${cur_dir}/lamp.log"
+
+        exit 1
+    fi
+}
+error_detect(){
+    local command=${1}
+    local work_dir=`pwd`
+    local cur_soft=`echo ${work_dir#$cur_dir} | awk -F'/' '{print $3}'`
+    ${command}
+    if [ $? -ne 0 ]; then
+        distro=`get_opsy`
+        version=`cat /proc/version`
+        architecture=`uname -m`
+        mem=`free -m`
+        disk=`df -ah`
+        cat >>${cur_dir}/lamp.log<<EOF
+        Errors Detail:
+        Distributions:$distro
+        Architecture:$architecture
+        Version:$version
+        Memery:
+        ${mem}
+        Disk:
+        ${disk}
+        PHP Version: $php
+        PHP compile parameter: ${php_configure_args}
+        Issue:failed to install ${cur_soft}
+EOF
+        echo
+        echo "+------------------+"
+        echo "|  ERROR DETECTED  |"
+        echo "+------------------+"
+        echo "Installation ${cur_soft} failed."
+        echo "The Full Log is available at ${cur_dir}/lamp.log"
+        echo "Please visit website: https://lamp.sh/faq.html for help"
+        exit 1
+    fi
+}
 ## bash colors
 # Reset
 Color_Off='\e[0m'       # Text Reset
