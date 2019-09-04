@@ -173,15 +173,41 @@ fi
 
 
 log "Info" "Setup unattended security upgrades..."
+sudo apt-get install unattended-upgrades
+# Following are additional software required
+# we only need mailutils or bsd-mailx, choose 1
+sudo apt-get install mailutils
+sudo apt-get install bsd-mailx
+sudo apt-get install update-notifier-common 
 
 #Setup unattended security upgrades
 cat > /etc/apt/apt.conf.d/50unattended-upgrades << EOF
-Unattended-Upgrade::Allowed-Origins {
-"Ubuntu xenial-security";
+Unattended-Upgrade::Origins-Pattern {
+        // Codename based matching:
+        // This will follow the migration of a release through different
+        // archives (e.g. from testing to stable and later oldstable).
+//      "o=Debian,n=jessie";
+//      "o=Debian,n=jessie-updates";
+//      "o=Debian,n=jessie-proposed-updates";
+//      "o=Debian,n=jessie,l=Debian-Security";
+        "o=${distro_id},n=${distro_codename}";
+        "o=${distro_id},n=${distro_codename}-updates";
+        "o=${distro_id},n=${distro_codename}-proposed-updates";
+        "o=${distro_id},n=${distro_codename},l=Debian-Security";
+	// Archive or Suite based matching:
+        // Note that this will silently match a different release after
+        // migration to the specified archive (e.g. testing becomes the
+        // new stable).
+//      "o=Debian,a=stable";
+//      "o=Debian,a=stable-updates";
+//      "o=Debian,a=proposed-updates";
+        "origin=Debian,codename=${distro_codename},label=Debian-Security";
 };
 Unattended-Upgrade::Package-Blacklist {
 //
 };
+Unattended-Upgrade::Mail "duane.britting@gmail.com";
+Unattended-Upgrade::Automatic-Reboot "true";
 EOF
 
 cat > /etc/apt/apt.conf.d/10periodic << EOF
@@ -190,6 +216,15 @@ APT::Periodic::Download-Upgradeable-Packages "1";
 APT::Periodic::AutocleanInterval "7";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
+
+cat > /etc/apt/apt.conf.d/20auto-upgrades << EOF
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+#sudo unattended-upgrade -d -v --dry-run
+sudo dpkg-reconfigure --priority=low unattended-upgrades
 log "Info" "Completed setup unattended security upgrades..."
 
 # Install Figlet
@@ -200,6 +235,8 @@ log "Info" "Preparing to Create VirtualHost Files..."
 any_key "Press any key to continue the script..."
 run_static_script create_vhost_files
 log "Info" "Completed preparing Create VirtualHost Files..."
+
+
 
 # Enable new config
 log "Info" "Preparing to enable to VirtualHost Files..."
