@@ -2,7 +2,7 @@
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
-WPDB=1 && MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/wordpress-vm/master/lib.sh)
+WPDB=1 && MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 unset MYCNFPW
 unset WPDB
 
@@ -14,13 +14,26 @@ check_command curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/p
 chmod +x wp-cli.phar
 mv wp-cli.phar /usr/local/bin/wp
 
+# Add www-data in sudoers
+{
+echo "# WP-CLI" 
+echo "$SUDO_USER ALL=(www-data) NOPASSWD: /usr/local/bin/wp"
+echo "root ALL=(www-data) NOPASSWD: /usr/local/bin/wp"
+} >> /etc/sudoers
+
 # Create dir
-mkdir $WPATH
+mkdir -p "$WPATH"
+chown -R www-data:www-data "$WPATH"
+if [ ! -d /home/"$SUDO_USER"/.wp-cli ]
+then
+    mkdir -p /home/"$SUDO_USER"/.wp-cli/
+    chown -R www-data:www-data /home/"$SUDO_USER"/.wp-cli/
+fi
 
 # Create wp-cli.yml
 touch $WPATH/wp-cli.yml
 cat << YML_CREATE > "$WPATH/wp-cli.yml"
-apache_modules:
+nginx_modules:
   - mod_rewrite
 YML_CREATE
 
@@ -32,21 +45,29 @@ cd "$WPATH"
 check_command wp core download --allow-root --force --debug --path="$WPATH"
 
 # Populate DB
-mysql -uroot -p"$MARIADBMYCNFPASS" <<MYSQL_SCRIPT
+mysql -uroot -p"$MARIADB_PASS" <<MYSQL_SCRIPT
 CREATE DATABASE $WPDBNAME;
 CREATE USER '$WPDBUSER'@'localhost' IDENTIFIED BY '$WPDBPASS';
 GRANT ALL PRIVILEGES ON $WPDBNAME.* TO '$WPDBUSER'@'localhost';
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
-check_command wp core config --allow-root --dbname=$WPDBNAME --dbuser=$WPDBUSER --dbpass="$WPDBPASS" --dbhost=localhost --extra-php <<PHP
-define( 'WP_DEBUG', false );
-define( 'WP_CACHE_KEY_SALT', 'wpredis_' );
-define( 'WP_REDIS_MAXTTL', 9600);
-define( 'WP_REDIS_SCHEME', 'tcp' );
-define( 'WP_REDIS_PATH', '/var/run/redis/redis.sock' );
+wp_cli_cmd core config --dbname=$WPDBNAME --dbuser=$WPDBUSER --dbpass="$WPDBPASS" --dbhost=localhost --extra-php <<PHP
+/** REDIS PASSWORD */
 define( 'WP_REDIS_PASSWORD', '$REDIS_PASS' );
+/** REDIS CLIENT */
+define( 'WP_REDIS_CLIENT', 'pecl' );
+/** REDIS SOCKET */
+define( 'WP_REDIS_SCHEME', 'unix' );
+/** REDIS PATH TO SOCKET */
+define( 'WP_REDIS_PATH', '$REDIS_SOCK' );
+/** REDIS SALT */
+define('WP_REDIS_MAXTTL', 9600);
+/** AUTO UPDATE */
 define( 'WP_AUTO_UPDATE_CORE', true );
-define('WP_CACHE', true);
+/** WP DEBUG? */
+define( 'WP_DEBUG', false );
+/** WP MEMORY SETTINGS*/
+define( 'WP_MEMORY_LIMIT', '128M' );
 PHP
 
 # Make sure the passwords are the same, this file will be deleted when Redis is run.
@@ -77,9 +98,9 @@ wp plugin delete hello --allow-root
 wp plugin install --allow-root opcache
 wp plugin install --allow-root wp-mail-smtp
 wp plugin install --allow-root redis-cache
-wp plugin install --allow-root all-in-one-wp-migration --activate
+#wp plugin install --allow-root all-in-one-wp-migration --activate
 
- sed -i "s|define( 'AI1WM_MAX_FILE_SIZE', 2 << 28 )|define( 'AI1WM_MAX_FILE_SIZE', 536870912 * 20 )|g" /var/www/html/wordpress/wp-content/plugins/all-in-one-wp-migration/constants.php
+#sed -i "s|define( 'AI1WM_MAX_FILE_SIZE', 2 << 28 )|define( 'AI1WM_MAX_FILE_SIZE', 536870912 * 20 )|g" /var/www/html/wordpress/wp-content/plugins/all-in-one-wp-migration/constants.php
 
 
 # set pretty urls
@@ -109,3 +130,46 @@ deny from all
 allow from all
 </Files>
 EOL
+
+
+# Secure wp-includes
+# https://wordpress.org/support/article/hardening-wordpress/#securing-wp-includes
+{
+echo "# Block wp-includes folder and files"
+echo "<IfModule mod_rewrite.c>"
+echo "RewriteEngine On"
+echo "RewriteBase /"
+echo "RewriteRule ^wp-admin/includes/ - [F,L]"
+echo "RewriteRule !^wp-includes/ - [S=3]"
+echo "RewriteRule ^wp-includes/[^/]+\.php$ - [F,L]"
+echo "RewriteRule ^wp-includes/js/tinymce/langs/.+\.php - [F,L]"
+echo "RewriteRule ^wp-includes/theme-compat/ - [F,L]"
+echo "# RewriteRule ^wp-includes/* - [F,L]" # Block EVERYTHING
+echo "</IfModule>"
+} >> $WPATH/.htaccess
+
+# Set up a php-fpm pool with a unixsocket
+cat << POOL_CONF > "$PHP_POOL_DIR/www_wordpress.conf"
+[www_wordpress]
+user = www-data
+group = www-data
+listen = $PHP_FPM_SOCK
+listen.owner = www-data
+listen.group = www-data
+pm = dynamic
+pm.max_children = 17
+pm.start_servers = 5
+pm.min_spare_servers = 2
+pm.max_spare_servers = 10
+pm.max_requests = 500
+env[HOSTNAME] = $(hostname -f)
+env[PATH] = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+env[TMP] = /tmp
+env[TMPDIR] = /tmp
+env[TEMP] = /tmp
+security.limit_extensions = .php
+php_admin_value [cgi.fix_pathinfo] = 1
+POOL_CONF
+
+# Disable regular pool
+mv $PHP_POOL_DIR/www.conf $PHP_POOL_DIR/default_www.config
