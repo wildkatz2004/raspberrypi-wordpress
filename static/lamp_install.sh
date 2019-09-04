@@ -236,6 +236,13 @@ lamp(){
 	#install_php_depends	
 	install_php
 	log "Info" "PHP install completed..."	
+	log "Info" "Beginning NGINX file configs..."	
+	run_static_script create_nginx_files
+	log "Info" "NGINX file configs completed..."	
+	log "Info" "Beginning igbinary & apcu file configs..."		
+	run_static_script config_igbinary_apcu
+	log "Info" "igbinary & apcu file configs completed..."	
+	
 }
 
 lamp 
