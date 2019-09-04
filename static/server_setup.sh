@@ -57,8 +57,8 @@ run_static_script adduser
 # Change DNS
 install_if_not resolvconf
 yes | dpkg-reconfigure --frontend=noninteractive resolvconf
-echo "nameserver 9.9.9.9" > /etc/resolvconf/resolv.conf.d/base
-echo "nameserver 149.112.112.112" >> /etc/resolvconf/resolv.conf.d/base
+echo "nameserver 208.67.222.222" > /etc/resolvconf/resolv.conf.d/base
+echo "nameserver 208.67.220.220" >> /etc/resolvconf/resolv.conf.d/base
 
 printf "${Green}Gathering System info${Color_Off}\n" 
 preinstall_lamp
@@ -237,33 +237,19 @@ run_static_script create_vhost_files
 log "Info" "Completed preparing Create VirtualHost Files..."
 
 
-
-# Enable new config
-log "Info" "Preparing to enable to VirtualHost Files..."
-any_key "Press any key to continue the script..."
-a2ensite wordpress_port_443.conf
-a2ensite wordpress_port_80.conf
-a2dissite 000-default.conf
-a2dissite default-ssl.conf
-a2enmod ssl
-log "Info" "Completed creating/enabling of VirtualHost Files..."
-log "Info" "Restarting Apache and cheching status..."
-check_command systemctl restart apache2
-check_command systemctl status apache2
-
 # Enable UTF8mb4 (4-byte support)
-log "Info" "Will attempt to Enable UTF8mb4 ..."
-any_key "Press any key to continue the script..."
+#log "Info" "Will attempt to Enable UTF8mb4 ..."
+#any_key "Press any key to continue the script..."
 #check_command alter_database_char_set $MARIADBMYCNFPASS
-log "Info" "UTF8mb4 enabled..."
-databases=$(mysql -u root -p"$MARIADBMYCNFPASS" -e "SHOW DATABASES;" | tr -d "| " | grep -v Database)
-for db in $databases; do
-    if [[ "$db" != "performance_schema" ]] && [[ "$db" != _* ]] && [[ "$db" != "information_schema" ]];
-    then
-        echo "Changing to UTF8mb4 on: $db"
-        mysql -u root -p"$MARIADBMYCNFPASS" -e "ALTER DATABASE $db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-    fi
-done
+#log "Info" "UTF8mb4 enabled..."
+#databases=$(mysql -u root -p"$MARIADBMYCNFPASS" -e "SHOW DATABASES;" | tr -d "| " | grep -v Database)
+#for db in $databases; do
+#    if [[ "$db" != "performance_schema" ]] && [[ "$db" != _* ]] && [[ "$db" != "information_schema" ]];
+#    then
+#        echo "Changing to UTF8mb4 on: $db"
+#        mysql -u root -p"$MARIADBMYCNFPASS" -e "ALTER DATABASE $db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+#    fi
+#done
 
 # Enable OPCache for PHP
 log "Info" "Will attempt to Enable OPCache for PHP..."
@@ -280,8 +266,8 @@ echo "opcache.memory_consumption=128"
 echo "opcache.save_comments=1"
 echo "opcache.revalidate_freq=1"
 echo "opcache.validate_timestamps=1"
-} >> /etc/php/7.2/fpm/php.ini
-cat /etc/php/7.2/fpm/php.ini
+} >> /etc/php/7.3/fpm/php.ini
+cat /etc/php/7.3/fpm/php.ini
 
 log "Info" "OPCache Enabled for PHP..."
 # Set secure permissions final
