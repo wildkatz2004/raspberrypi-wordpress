@@ -40,7 +40,7 @@ run_static_script adduser
 
 
 # Check Ubuntu version
-echo "Checking server OS and version..."
+#echo "Checking server OS and version..."
 #if [ "$OS" != 1 ]
 #then
 #    echo "Ubuntu Server is required to run this script."
@@ -53,6 +53,12 @@ echo "Checking server OS and version..."
 #    echo "Ubuntu version $DISTRO must be between 16.04 - 16.04.4"
 #    exit
 #fi
+
+# Change DNS
+install_if_not resolvconf
+yes | dpkg-reconfigure --frontend=noninteractive resolvconf
+echo "nameserver 9.9.9.9" > /etc/resolvconf/resolv.conf.d/base
+echo "nameserver 149.112.112.112" >> /etc/resolvconf/resolv.conf.d/base
 
 printf "${Green}Gathering System info${Color_Off}\n" 
 preinstall_lamp
