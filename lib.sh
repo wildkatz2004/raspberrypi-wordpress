@@ -4,6 +4,7 @@ true
 # see https://github.com/koalaman/shellcheck/wiki/Directive
 
 ## variables
+
 # Dirs
 SCRIPTS=/var/scripts
 WWW_ROOT=/var/www/html
@@ -12,7 +13,7 @@ GPGDIR=/tmp/gpg
 
 # Ubuntu OS
 DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
-OS=$(grep -ic "buster" /etc/os-release)
+OS=$(grep -ic "Ubuntu" /etc/issue.net)
 
 # Network
 [ -n "$FIRST_IFACE" ] && IFACE=$(lshw -c network | grep "logical name" | awk '{print $3; exit}')
@@ -26,14 +27,13 @@ IFCONFIG="/sbin/ifconfig"
 INTERFACES="/etc/netplan/01-netcfg.yaml"
 NETMASK=$($IFCONFIG | grep -w inet |grep -v 127.0.0.1| awk '{print $4}' | cut -d ":" -f 2)
 GATEWAY=$(route -n|grep "UG"|grep -v "UGH"|cut -f 10 -d " ")
-DNS1="208.67.222.222"
-DNS2="208.67.220.220"
+CLIENTSIDEIP=$(echo $SSH_CLIENT | awk '{ print $1}')
 
 # Repo
-GITHUB_REPO="https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master"
+GITHUB_REPO="https://raw.githubusercontent.com/wildkatz2004/wordpress-vm/master"
 STATIC="$GITHUB_REPO/static"
 LETS_ENC="$GITHUB_REPO/lets-encrypt"
-ISSUES="https://github.com/wildkatz2004/raspberrypi-wordpress/issues"
+ISSUES="https://github.com/wildkatz2004/wordpress-vm/issues"
 APP="$GITHUB_REPO/apps"
 
 # User information
@@ -41,12 +41,14 @@ WPDBNAME=br_wordpress
 WPADMINUSER=change_this_user
 UNIXUSER=$SUDO_USER
 UNIXUSER_PROFILE="/home/$UNIXUSER/.bash_profile"
+UNIXUSER_ALIAS="/home/$UNIXUSER/.bash_aliases"
 ROOT_PROFILE="/root/.bash_profile"
 
 # PHP-FPM
-PHP_INI=/etc/php/7.3/fpm/php.ini
-PHP_POOL_DIR=/etc/php/7.3/fpm/pool.d
-PHP_FPM_SOCK=/var/run/php7.3-fpm-wordpress.sock
+PHPVER=7.3
+PHP_INI=/etc/php/"$PHPVER"/fpm/php.ini
+PHP_POOL_DIR=/etc/php/"$PHPVER"/fpm/pool.d
+PHP_FPM_SOCK=/var/run/php"$PHPVER"-fpm-wordpress.sock
 
 # MARIADB
 SHUF=$(shuf -i 25-29 -n 1)
@@ -80,10 +82,12 @@ REDIS_CONF=/etc/redis/redis.conf
 REDIS_SOCK=/var/run/redis/redis-server.sock
 RSHUF=$(shuf -i 30-35 -n 1)
 REDIS_PASS=$(tr -dc "a-zA-Z0-9@#*=" < /dev/urandom | fold -w "$RSHUF" | head -n 1)
+REDISPTXT=/tmp/redispasstxt
 
 # Extra security
+SPAMHAUSCONF=/etc/apache2/mods-available/spamhaus.conf
 SPAMHAUS=/etc/spamhaus.wl
-ENVASIVE=/etc/apache2/mods-available/mod-evasive.load
+ENVASIVE=/etc/apache2/mods-enabled/evasive.conf
 APACHE2=/etc/apache2/apache2.conf
 
 ## functions
@@ -95,7 +99,7 @@ APACHE2=/etc/apache2/apache2.conf
 # then
 #     # do stuff
 # else
-#     print_text_in_color "$IRed" "You are not root..."
+#     echo "You are not root..."
 #     exit 1
 # fi
 #
@@ -108,21 +112,24 @@ is_root() {
     fi
 }
 
-# Check if root
-root_check() {
-if ! is_root
+debug_mode() {
+if [ "$DEBUG" -eq 1 ]
 then
-msg_box "Sorry, you are not root. You now have two options:
-1. With SUDO directly:
-   a) :~$ sudo bash $SCRIPTS/name-of-script.sh
-2. Become ROOT and then type your command:
-   a) :~$ sudo -i
-   b) :~# $SCRIPTS/name-of-script.sh
-In both cases above you can leave out $SCRIPTS/ if the script
-is directly in your PATH.
-More information can be found here: https://unix.stackexchange.com/a/3064"
-    exit 1
+    set -ex
 fi
+}
+
+ask_yes_or_no() {
+
+    read -r -p "$1 : ([y]es or [N]o): "
+    case ${REPLY,,} in
+        y|yes)
+            echo "yes"
+        ;;
+        *)
+            echo "no"
+        ;;
+    esac
 }
 
 wp_cli_cmd() {
@@ -147,30 +154,98 @@ do
 done
 }
 
-debug_mode() {
-if [ "$DEBUG" -eq 1 ]
+# Check if program is installed (is_this_installed apache2)
+is_this_installed() {
+if [ "$(dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed")" == "1" ]
 then
-    set -ex
+    echo "${1} is installed, it must be a clean server."
+    exit 1
 fi
 }
 
-ask_yes_or_no() {
-    read -r -p "$1 ([y]es or [N]o): "
-    case ${REPLY,,} in
-        y|yes)
-            echo "yes"
-        ;;
-        *)
-            echo "no"
-        ;;
-    esac
+# Define Color
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+PLAIN='\033[0m'
+
+log(){
+    if   [ "${1}" == "Warning" ]; then
+        echo -e "[${YELLOW}${1}${PLAIN}] ${2}"
+    elif [ "${1}" == "Error" ]; then
+        echo -e "[${RED}${1}${PLAIN}] ${2}"
+    elif [ "${1}" == "Info" ]; then
+        echo -e "[${GREEN}${1}${PLAIN}] ${2}"
+    else
+        echo -e "[${1}] ${2}"
+    fi
+}
+
+# Install_if_not program
+install_if_not () {
+if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
+then
+    apt update -q4 & spinner_loading && apt install "${1}" -y
+fi
+}
+
+# Test RAM size 
+# Call it like this: ram_check [amount of min RAM in GB] [for which program]
+# Example: ram_check 2 Wordpress
+ram_check() {
+mem_available="$(awk '/MemTotal/{print $2}' /proc/meminfo)"
+if [ "${mem_available}" -lt "$((${1}*1002400))" ]
+then
+    printf "${Red}Error: ${1} GB RAM required to install ${2}!${Color_Off}\n" >&2
+    printf "${Red}Current RAM is: ("$((mem_available/1002400))" GB)${Color_Off}\n" >&2
+    sleep 3
+    exit 1
+else
+    printf "${Green}RAM for ${2} OK! ("$((mem_available/1002400))" GB)${Color_Off}\n"
+fi
+}
+
+# Test number of CPU
+# Call it like this: cpu_check [amount of min CPU] [for which program]
+# Example: cpu_check 2 Wordpress
+cpu_check() {
+nr_cpu="$(nproc)"
+if [ "${nr_cpu}" -lt "${1}" ]
+then
+    printf "${Red}Error: ${1} CPU required to install ${2}!${Color_Off}\n" >&2
+    printf "${Red}Current CPU: ("$((nr_cpu))")${Color_Off}\n" >&2
+    sleep 3
+    exit 1
+else
+    printf "${Green}CPU for ${2} OK! ("$((nr_cpu))")${Color_Off}\n"
+fi
+}
+
+check_command() {
+  if ! eval "$*"
+  then
+     printf "${IRed}Sorry but something went wrong. Please report this issue to $ISSUES and include the output of the error message. Thank you!${Color_Off}\n"
+     echo "$* failed"
+    exit 1
+  fi
+}
+
+network_ok() {
+    echo "Testing if network is OK..."
+    service networking restart
+    if wget -q -T 20 -t 2 http://github.com -O /dev/null & spinner_loading
+    then
+        return 0
+    else
+        return 1
+    fi
 }
 
 restart_webserver() {
 check_command systemctl restart nginx
-if php7.3-fpm -v > /dev/null
+if is_this_installed php"$PHPVER"-fpm
 then
-    check_command systemctl restart php7.3-fpm.service
+    check_command systemctl restart php"$PHPVER"-fpm.service
 fi
 }
 
@@ -193,124 +268,18 @@ else
 fi
 }
 
-# Check if port is open # check_open_port 443 domain.example.com
-check_open_port() {
-print_text_in_color "${ICyan}" "Checking if port ${1} is open with https://ports.yougetsignal.com..."
-install_if_not curl
-# WAN Adress
-if check_command curl -s -H 'Cache-Control: no-cache' 'https://ports.yougetsignal.com/check-port.php' --data "remoteAddress=${WANIP4}&portNumber=${1}" | grep -q "is open on"
-then
-    print_text_in_color "${IGreen}" "Port ${1} is open on ${WANIP4}!"
-# Domain name
-elif check_command curl -s -H 'Cache-Control: no-cache' 'https://ports.yougetsignal.com/check-port.php' --data "remoteAddress=${2}&portNumber=${1}" | grep -q "is open on"
-then
-    print_text_in_color "${IGreen}" "Port ${1} is open on ${2}!"
-else
-    msg_box "Port $1 is not open on either ${WANIP4} or ${2}.\n\nPlease follow this guide to open ports in your router or firewall:\nhttps://www.techandme.se/open-port-80-443/"
-    any_key "Press any key to exit..."
-    exit 1
-fi
-}
-
 msg_box() {
 local PROMPT="$1"
     whiptail --msgbox "${PROMPT}" "$WT_HEIGHT" "$WT_WIDTH"
 }
 
-# Check if program is installed (is_this_installed apache2)
-is_this_installed() {
+# Check if program is installed (stop_if_installed apache2)
+stop_if_installed() {
 if [ "$(dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed")" == "1" ]
 then
     print_text_in_color "$IRed" "${1} is installed, it must be a clean server."
     exit 1
 fi
-}
-
-# Install_if_not program
-install_if_not () {
-if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
-then
-    apt update -q4 & spinner_loading && apt install "${1}" -y
-fi
-}
-
-test_connection() {
-install_if_not dnsutils
-install_if_not network-manager
-check_command service network-manager restart
-ip link set "$IFACE" down
-wait
-ip link set "$IFACE" up
-wait
-check_command service network-manager restart
-print_text_in_color "$ICyan" "Checking connection..."
-sleep 3
-if ! nslookup github.com
-then
-msg_box "Network NOT OK. You must have a working network connection to run this script
-If you think that this is a bug, please report it to https://github.com/nextcloud/vm/issues."
-    exit 1
-fi
-}
-
-# Test RAM size
-# Call it like this: ram_check [amount of min RAM in GB] [for which program]
-# Example: ram_check 2 Wordpress
-ram_check() {
-mem_available="$(awk '/MemTotal/{print $2}' /proc/meminfo)"
-if [ "${mem_available}" -lt "$((${1}*1002400))" ]
-then
-    print_text_in_color "${Red}" "Error: ${1} GB RAM required to install ${2}!" >&2
-    print_text_in_color "${Red}" "Current RAM is: ("$((mem_available/1002400))" GB)" >&2
-    sleep 3
-    msg_box "If you want to bypass this check you could do so by commenting out (# before the line) 'ram_check X' in the script that you are trying to run.
-    In nextcloud_install_production.sh you can find the check somewhere around line #34.
-    Please notice that things may be veery slow and not work as expeced. YOU HAVE BEEN WARNED!"
-    exit 1
-else
-    print_text_in_color "${IGreen}" "RAM for ${2} OK! ($((mem_available/1002400)) GB)"
-fi
-}
-
-# Test number of CPU
-# Call it like this: cpu_check [amount of min CPU] [for which program]
-# Example: cpu_check 2 Wordpress
-cpu_check() {
-nr_cpu="$(nproc)"
-if [ "${nr_cpu}" -lt "${1}" ]
-then
-    print_text_in_color "${Red}" "Error: ${1} CPU required to install ${2}!" >&2
-    print_text_in_color "${Red}" "Current CPU: ($((nr_cpu)))" >&2
-    sleep 3
-    exit 1
-else
-    print_text_in_color "${IGreen}" "CPU for ${2} OK! ($((nr_cpu)))"
-fi
-}
-
-check_command() {
-  if ! "$@";
-  then
-     print_text_in_color "${Red}" "Sorry but something went wrong. Please report this issue to $ISSUES and include the output of the error message. Thank you!"
-     print_text_in_color "$IRed" "$* failed"
-    exit 1
-  fi
-}
-
-network_ok() {
-    print_text_in_color "$ICyan" "Testing if network is OK..."
-    install_if_not network-manager
-    if ! service network-manager restart > /dev/null
-    then
-        service networking restart > /dev/null
-    fi
-    sleep 2
-    if wget -q -T 20 -t 2 http://github.com -O /dev/null & spinner_loading
-    then
-        return 0
-    else
-        return 1
-    fi
 }
 
 # Whiptail auto-size
@@ -465,10 +434,6 @@ any_key() {
     echo
 }
 
-print_text_in_color() {
-	printf "%b%s%b\n" "$1" "$2" "$Color_Off"
-}
-
 check_command_exist(){
     if [ ! "$(command -v "${1}")" ]; then
         log "Error" "${1} is not installed, please install it and try again."
@@ -476,23 +441,6 @@ check_command_exist(){
     fi
 }
 
-get_php_extension_dir(){
-    local phpConfig=${1}
-    ${phpConfig} --extension-dir
-}
-
-get_php_version(){
-    local phpConfig=${1}
-    ${phpConfig} --version | cut -d'.' -f1-2
-}
-
-is_64bit(){
-    if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
-        return 0
-    else
-        return 1
-    fi
-}
 check_installed(){
     local cmd=${1}
     local location=${2}
@@ -513,21 +461,6 @@ check_ram(){
     [ ${ramsum} -lt 600 ] && disable_fileinfo="--disable-fileinfo" || disable_fileinfo=""
 }
 
-raspbianversion(){
-    if check_sys sysRelease raspbian; then
-        local version=$( get_opsy )
-        local code=${1}
-        echo ${version} | grep -q "${code}"
-        if [ $? -eq 0 ]; then
-            return 0
-        else
-            return 1
-        fi
-    else
-        return 1
-    fi
-}
-
 ubuntuversion(){
     if check_sys sysRelease ubuntu; then
         local version=$( get_opsy )
@@ -542,6 +475,7 @@ ubuntuversion(){
         return 1
     fi
 }
+
 
 #Check system
 check_sys(){
@@ -559,9 +493,6 @@ check_sys(){
         systemPackage="apt"
     elif cat /etc/issue | grep -Eqi "ubuntu"; then
         release="ubuntu"
-        systemPackage="apt"
-    elif cat /etc/os-release | grep -Eqi "raspbian"; then
-        release="raspbian"
         systemPackage="apt"
     elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
         release="centos"
@@ -626,6 +557,23 @@ get_os_info(){
     ramsum=$( expr $tram + $swap )
 }
 
+get_php_extension_dir(){
+    local phpConfig=${1}
+    ${phpConfig} --extension-dir
+}
+
+get_php_version(){
+    local phpConfig=${1}
+    ${phpConfig} --version | cut -d'.' -f1-2
+}
+
+is_64bit(){
+    if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
+        return 0
+    else
+        return 1
+    fi
+}
 display_os_info(){
     clear
     echo
@@ -653,6 +601,13 @@ display_os_info(){
     echo "---------------------------------------------------------------------"
 }
 
+check_command_exist(){
+    if [ ! "$(command -v "${1}")" ]; then
+        log "Error" "${1} is not installed, please install it and try again."
+        exit 1
+    fi
+}
+
 #Install tools
 install_tool(){
     log "Info" "Starting to install development tools..."
@@ -670,11 +625,11 @@ install_tool(){
     check_command_exist "netstat"
 }
 
+#Pre-installation
 preinstall_lamp(){
     check_ram
     display_os_info
 }
-
 error_detect_depends(){
     local command=${1}
     local work_dir=`pwd`
@@ -708,6 +663,7 @@ EOF
         exit 1
     fi
 }
+
 error_detect(){
     local command=${1}
     local work_dir=`pwd`
