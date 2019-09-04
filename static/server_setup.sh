@@ -100,28 +100,17 @@ fi
 # Update system
 apt update -q4 & spinner_loading
 
-#The Perfect Server - Ubuntu LAMP 7.2
-#https://webdock.io/en/docs/stacks/ubuntu-lamp-72
-if [[ "yes" == $(ask_yes_or_no "Begin adding apache2 and php repositories... ?") ]]
-then
-	log "Info" "Adding apache2 and php repositories..."
-	apt-add-repository ppa:ondrej/apache2 -y
-	apt-add-repository ppa:ondrej/php -y
-	log "Info" "Completed adding apache2 and php repositories..."
-else
-	printf "${Green}OK, moving to next step...${Color_Off}\n" 
-fi
-
-
-
 #Install base packages
 install_base_packages(){
 
     if check_sys packageManager apt; then
         apt_depends=(
-        build-essential curl nano wget lftp unzip zoo bzip2 arj nomarch 
-        lzop htop openssl gcc git binutils libmcrypt4 libpcre3-dev make python2.7 
-        python-pip supervisor unattended-upgrades whois zsh imagemagick tcl wget
+		build-essential curl nano wget lftp unzip zoo bzip2 arj nomarch 
+		lzop htop openssl gcc git binutils libmcrypt4 libpcre3-dev make python2.7 
+		python-pip supervisor unattended-upgrades whois zsh imagemagick tcl
+		tree locate software-properties-common screen
+		net-tools ffmpeg ghostscript libfile-fcntllock-perl
+		gnupg2 lsb-release ssl-cert ca-certificates apt-transport-https
         )
         log "Info" "Starting to install base packages..."
         for depend in ${apt_depends[@]}
