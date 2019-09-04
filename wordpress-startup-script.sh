@@ -82,85 +82,20 @@ root_check
 # Check network
 if network_ok
 then
-    printf "${IGreen}Online!${Color_Off}\n"
+    printf "${Green}Online!${Color_Off}\n"
 else
-    print_text_in_color "$ICyan" "Setting correct interface..."
+    echo "Setting correct interface..."
     [ -z "$IFACE" ] && IFACE=$(lshw -c network | grep "logical name" | awk '{print $3; exit}')
     # Set correct interface
-cat <<-SETDHCP > "/etc/netplan/01-netcfg.yaml"
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    $IFACE:
-      dhcp4: yes
-      dhcp6: yes
-SETDHCP
-    check_command netplan apply
-    check_command service network-manager restart
-    ip link set "$IFACE" down
-    wait
-    ip link set "$IFACE" up
-    wait
-    check_command service network-manager restart
-    print_text_in_color "$ICyan" "Checking connection..."
-    sleep 1
-    if ! nslookup github.com
-    then
-msg_box "The script failed to get an address from DHCP.
-You must have a working network connection to run this script.
-You will now be provided with the option to set a static IP manually instead."
-
-    # Copy old interfaces files
-msg_box "Copying old netplan.io config files file to:
-/tmp/netplan_io_backup/"
-    if [ -d /etc/netplan/ ] 
-    then
-        mkdir -p /tmp/netplan_io_backup
-        check_command cp -vR /etc/netplan/* /tmp/netplan_io_backup/
-    fi
-
-    # Ask for IP address
-cat << ENTERIP
-+----------------------------------------------------------+
-|    Please enter the static IP address you want to set,   |
-|    including the subnet. Example: 192.168.1.100/24       |
-+----------------------------------------------------------+
-ENTERIP
-    echo
-    read -r LANIP
-    echo
-
-    # Ask for gateway address
-cat << ENTERGATEWAY
-+----------------------------------------------------------+
-|    Please enter the gateway address you want to set,     |
-|    Example: 192.168.1.1                                  |
-+----------------------------------------------------------+
-ENTERGATEWAY
-    echo
-    read -r GATEWAYIP
-    echo
-
-    # Create the Static IP file
-cat <<-IPCONFIG > /etc/netplan/01-netcfg.yaml
-network:
-   version: 2
-   renderer: networkd
-   ethernets:
-       $IFACE: #object name
-         dhcp4: no # dhcp v4 disable
-         dhcp6: no # dhcp v6 disable
-         addresses: [$LANIP] # client IP address
-         gateway4: $GATEWAYIP # gateway address
-         nameservers:
-           addresses: [208.67.222.222,208.67.220.220] #name servers
-IPCONFIG
-
-msg_box "These are your settings, please make sure they are correct:
-$(cat /etc/netplan/01-netcfg.yaml)"
-    netplan try
-    fi
+    {
+        sed '/# The primary network interface/q' /etc/network/interfaces
+        printf 'auto %s\niface %s inet dhcp\n# This is an autoconfigured IPv6 interface\niface %s inet6 auto\n' "$IFACE" "$IFACE" "$IFACE"
+    } > /etc/network/interfaces.new
+    mv /etc/network/interfaces.new /etc/network/interfaces
+    service networking restart
+    # shellcheck source=lib.sh
+    CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/wordpress-vm/master/lib.sh)
+    unset CHECK_CURRENT_REPO
 fi
 
 # Check network again
@@ -214,7 +149,7 @@ msg_box"This script will do the final setup for you
 - Upgrade the system
 - Activate SSL (Let's Encrypt)
 - Install Adminer
-- Change keyboard setup (current is Swedish)
+- Change keyboard setup 
 - Change system timezone
 - Set new password to the Linux system (user: wordpress)
 
@@ -244,33 +179,6 @@ else
     dpkg-reconfigure tzdata
 clear
 fi
-
-# Check where the best mirrors are and update
-msg_box "To make downloads as fast as possible when updating you should have mirrors that are as close to you as possible.
-This VM comes with mirrors based on servers in that where used when the VM was released and packaged.
-If you are located outside of Europe, we recomend you to change the mirrors so that downloads are faster."
-print_text_in_color "$ICyan" "Checking current mirror..."
-print_text_in_color "$ICyan" "Your current server repository is: $REPO"
-
-if [[ "no" == $(ask_yes_or_no "Do you want to try to find a better mirror?") ]]
-then
-    print_text_in_color "$ICyan" "Keeping $REPO as mirror..."
-    sleep 1
-else
-    print_text_in_color "$ICyan" "Locating the best mirrors..."
-    apt update -q4 & spinner_loading
-    apt install python-pip -y
-    pip install \
-        --upgrade pip \
-        apt-select
-    check_command apt-select -m up-to-date -t 5 -c -C "$(localectl status | grep "Layout" | awk '{print $3}')"
-    sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup && \
-    if [ -f sources.list ]
-    then
-        sudo mv sources.list /etc/apt/
-    fi
-fi
-clear
 
 # Generate new SSH Keys
 printf "\nGenerating new SSH keys for the server...\n"
@@ -304,31 +212,6 @@ do
 
         Adminer)
             run_app_script adminer
-        ;;
-
-        *)
-        ;;
-    esac
-done 9< results
-rm -f results
-clear
-
-# Extra configurations
-whiptail --title "Extra configurations" --checklist --separate-output "Choose what you want to configure\nSelect by pressing the spacebar" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"Security" "(Add extra security based on this http://goo.gl/gEJHi7)" OFF \
-"Static IP" "(Set static IP in Ubuntu with netplan.io)" OFF 2>results
-
-while read -r -u 9 choice
-do
-    case $choice in
-        "Security")
-            clear
-            run_static_script security
-        ;;
-
-        "Static IP")
-            clear
-            run_static_script static_ip
         ;;
 
         *)
@@ -420,9 +303,6 @@ wp_cli_cmd user list --role=administrator --path="$WPATH"
 any_key "Press any key to continue..."
 clear
 
-# Fixes https://github.com/techandme/wordpress-vm/issues/58
-a2dismod status
-service apache2 reload
 
 # Cleanup 1
 rm -f "$SCRIPTS/ip.sh"
@@ -430,7 +310,7 @@ rm -f "$SCRIPTS/test_connection.sh"
 rm -f "$SCRIPTS/instruction.sh"
 rm -f "$SCRIPTS/wordpress-startup-script.sh"
 find /root "/home/$UNIXUSER" -type f \( -name '*.sh*' -o -name '*.html*' -o -name '*.tar*' -o -name '*.zip*' \) -delete
-sed -i "s|instruction.sh|techandme.sh|g" "/home/$UNIXUSER/.bash_profile"
+#sed -i "s|instruction.sh|techandme.sh|g" "/home/$UNIXUSER/.bash_profile"
 
 truncate -s 0 \
     /root/.bash_history \
@@ -441,9 +321,9 @@ truncate -s 0 \
     /var/log/apache2/error.log \
     /var/log/cronjobs_success.log
 
-sed -i "s|sudo -i||g" "/home/$UNIXUSER/.bash_profile"
-cat << RCLOCAL > "/etc/rc.local"
-#!/bin/sh -e
+#sed -i "s|sudo -i||g" "/home/$UNIXUSER/.bash_profile"
+#cat << RCLOCAL > "/etc/rc.local"
+##!/bin/sh -e
 #
 # rc.local
 #
@@ -493,7 +373,9 @@ TIPS & TRICKS:
  ######################### D&B Consulting - $(date +"%Y") #########################  "
 
 # Prefer IPv6
-sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
+#sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
 
-# Reboot
+## Reboot
+echo "Installations finished. System will now reboot..."
+sleep 10
 reboot
