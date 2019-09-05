@@ -10,7 +10,6 @@ WPDB=1 && MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/
 unset MYCNFPW
 unset WPDB
 
-
 # Check for errors + debug code and abort if something isn't right
 # 1 = ON
 # 0 = OFF
@@ -53,7 +52,7 @@ run_static_script adduser
 #    echo "Ubuntu version $DISTRO must be between 16.04 - 16.04.4"
 #    exit
 #fi
-
+install_if_not install lshw
 # Change DNS
 install_if_not resolvconf
 yes | dpkg-reconfigure --frontend=noninteractive resolvconf
