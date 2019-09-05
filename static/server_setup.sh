@@ -152,7 +152,7 @@ fi
 if [[ "yes" == $(ask_yes_or_no "Begin installing LAMP...?") ]]
 then
 	log "Info" "Preparing to install LAMP..."
-	run_static_script lamp_install
+	run_static_script lemp_install
 	log "Info" "Completed installing LAMP..."
 else
 	printf "${Green}OK, moving to next step...${Color_Off}\n" 
