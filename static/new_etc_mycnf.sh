@@ -221,7 +221,7 @@ innodb-log-file-size           = ${innodb_log_file_size}
 innodb-flush-log-at-trx-commit = 1
 innodb-file-per-table          = 1
 innodb-buffer-pool-size        = ${innodb_buffer_pool_size}
-innodb_log_buffer_size	= 8M
+innodb_log_buffer_size	= 32M
 innodb_file_per_table	= 1
 innodb_open_files	= 400
 innodb_io_capacity	= 400
@@ -276,9 +276,9 @@ max_allowed_packet	= 16M
 default-character-set = utf8mb4
 #no-auto-rehash	# faster start of mysql but no tab completion
 [mariadb]
-innodb_use_fallocate = 1
+#innodb_use_fallocate = 1
 innodb_use_atomic_writes = 1
-innodb_use_trim = 1
+#innodb_use_trim = 1
 [isamchk]
 key_buffer		= 16M
 
