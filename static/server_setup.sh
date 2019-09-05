@@ -25,8 +25,8 @@ then
 fi
 
 # Test RAM size (2GB min) + CPUs (min 1)
-ram_check 2 Wordpress
-cpu_check 1 Wordpress
+#ram_check 2 Wordpress
+#cpu_check 1 Wordpress
 
 # Show current user
 echo
