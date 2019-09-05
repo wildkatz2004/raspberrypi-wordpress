@@ -62,26 +62,6 @@ sed -i "s|save 60 10000|# save 60 10000|g" $REDIS_CONF
 sed -i "s|save 300 10|# save 300 10|g" $REDIS_CONF
 sed -i "s|save 900 1|# save 900 1|g" $REDIS_CONF
 
-# Create a Redis systemd Unit File
-cat << EOF > /etc/systemd/system/redis.service
-[Unit]
-Description=Redis Server
-After=network.target
-
-[Service]
-Type=forking
-User=redis
-Group=redis
-ExecStart=/usr/local/bin/redis-server /etc/redis/redis.conf
-ExecReload=/bin/kill -USR2 $MAINPID
-ExecStop=/usr/local/bin/redis-cli shutdown
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-
 # Secure Redis
 chown redis:root /etc/redis/redis.conf
 chmod 600 /etc/redis/redis.conf
@@ -132,7 +112,6 @@ else
     printf "${Green}\nRedis installation OK!${Color_Off}\n"
 fi
 
-
 configure_redis
 }
 
@@ -149,7 +128,7 @@ sudo systemctl restart redis
 #############################################################################
 
 # Install Redis
-install_if_not php7.3-dev
+install_if_not php"$PHPVER"-dev
 pecl channel-update pecl.php.net
 if ! yes no | pecl install -Z redis
 then
@@ -166,7 +145,7 @@ install_redis
 # print_text_in_color "$ICyan" 'extension=redis.so' > /etc/php/7.0/mods-available/redis.ini
 # phpenmod redis
 # Setting direct to apache2 works if 'libapache2-mod-php7.0' is installed
-echo 'extension=redis.so' >> /etc/php/7.3/fpm/php.ini
+echo 'extension=redis.so' >> /etc/php/"$PHPVER"/fpm/php.ini
 service nginx restart
 
 
@@ -180,8 +159,8 @@ chmod 600 /etc/redis/redis.conf
 start_redis
 
 #Start php7
-sudo service php7.3-fpm status | cat
-sudo service php7.3-fpm restart
+sudo service php"$PHPVER"-fpm status | cat
+sudo service php"$PHPVER"-fpm restart
 
 apt update -q4 & spinner_loading
 apt autoremove -y
