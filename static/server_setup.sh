@@ -316,8 +316,8 @@ log "Info" "Robot.txt file created..."
 # Prepare for first mount
 download_static_script instruction
 download_static_script history
-run_static_script change-root-profile
-run_static_script change-wordpress-profile
+#run_static_script change-root-profile
+#run_static_script change-wordpress-profile
 if [ ! -f "$SCRIPTS"/wordpress-startup-script.sh ]
 then
 check_command wget -q "$GITHUB_REPO"/wordpress-startup-script.sh -P "$SCRIPTS"
@@ -330,7 +330,11 @@ chown root:root -R "$SCRIPTS"
 # Allow wordpress to run theese scripts
 chown www-data:www-data "$SCRIPTS/instruction.sh"
 chown www-data:www-data "$SCRIPTS/history.sh"
-
+sudo usermod -a -G redis www-data
+sudo find /var/www/html/wordpress -type d -exec chmod 755 {} \;
+sudo find /var/www/html/wordpress -type f -exec chmod 644 {} \;
+sudo chown -R www-data /var/www/html/wordpress
+sudo service php"$PHPVER"-fpm restart && sudo service nginx restart
 # Upgrade
 apt dist-upgrade -y
 
