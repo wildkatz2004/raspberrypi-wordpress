@@ -11,6 +11,16 @@ WWW_ROOT=/var/www/html
 WPATH=$WWW_ROOT/wordpress
 GPGDIR=/tmp/gpg
 
+install_req_pgs() {
+if [ "$(dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed")" != "1" ]
+then
+    apt update && apt install "${1}" -y 
+    exit 1
+fi
+}
+
+install_req_pgs spin
+
 spinner_loading() {
     pid=$!
     spin='-\|/'
@@ -23,6 +33,14 @@ spinner_loading() {
     done
 }
 
+# Check if program is installed (is_this_installed apache2)
+is_this_installed() {
+if [ "$(dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed")" == "1" ]
+then
+    echo "${1} is installed, it must be a clean server."
+    exit 1
+fi
+}
 # Install_if_not program
 install_if_not () {
 if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
