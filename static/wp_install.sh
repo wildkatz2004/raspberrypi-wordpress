@@ -46,7 +46,7 @@ check_command wp core download --allow-root --force --debug --path="$WPATH"
 
 # Populate DB
 mysql -uroot -p"$MARIADB_PASS" <<MYSQL_SCRIPT
-CREATE DATABASE $WPDBNAME;
+CREATE DATABASE $WPDBNAME CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER '$WPDBUSER'@'localhost' IDENTIFIED BY '$WPDBPASS';
 GRANT ALL PRIVILEGES ON $WPDBNAME.* TO '$WPDBUSER'@'localhost';
 FLUSH PRIVILEGES;
