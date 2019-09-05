@@ -2,10 +2,9 @@
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
-WPDB=1 && MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
-unset MYCNFPW
-unset WPDB
+. <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 
+echo mariadb"$MYCNFPW"
 # Run WordPress Install Function
 wordpress_install(){
 
@@ -45,10 +44,10 @@ cd "$WPATH"
 check_command wp core download --allow-root --force --debug --path="$WPATH"
 
 # Populate DB
-mysql -uroot -p"$MARIADB_PASS" <<MYSQL_SCRIPT
+mysql -u root -p"$MYCNFPW" <<MYSQL_SCRIPT
 CREATE DATABASE $WPDBNAME CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER '$WPDBUSER'@'localhost' IDENTIFIED BY '$WPDBPASS';
-GRANT ALL PRIVILEGES ON $WPDBNAME.* TO '$WPDBUSER'@'localhost';
+GRANT ALL PRIVILEGES ON brwordpress.* TO 'wordpressuser'@'localhost' IDENTIFIED BY '$WPDBPASS';
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
 wp_cli_cmd core config --dbname=$WPDBNAME --dbuser=$WPDBUSER --dbpass="$WPDBPASS" --dbhost=localhost --path=$WPATH --extra-php <<PHP
@@ -74,7 +73,7 @@ PHP
 echo "$REDIS_PASS" > /tmp/redis_pass.txt
 
 # Install Wordpress
-check_command wp core install --allow-root --url=http://"$ADDRESS"/ --title=Wordpress --admin_user=$WPADMINUSER --admin_password="$WPADMINPASS" --admin_email=no-reply@techandme.se --skip-email
+check_command wp core install --allow-root --url=http://"$ADDRESS"/ --title=Wordpress --admin_user=$WPADMINUSER --admin_password="$WPADMINPASS" --admin_email=duane.britting@gmail.com --path=$WPATH --skip-email
 echo "WP PASS: $WPADMINPASS" > /var/adminpass.txt
 chown wordpress:wordpress /var/adminpass.txt
 
