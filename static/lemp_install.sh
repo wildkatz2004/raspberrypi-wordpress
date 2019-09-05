@@ -19,9 +19,6 @@ then
     exit 1
 fi
 
-#Variable(s)
-php_ver_num=7.3
-phptoinstall=php7.3
 #Install MariaDB Function
 
 log "Info" "Write DB password to file to prepare for LAMP install..."
@@ -194,11 +191,11 @@ local phpversion=php7.3
 
 	if check_sys packageManager apt; then
 		apt_php_package=(
-		php7.3 php7.3-fpm php7.3-common
-		php7.3-common php7.3-cli php7.3-dev php7.3-pgsql php7.3-sqlite3 php7.3-gd php7.3-curl php-memcached 
-		php7.3-imap php7.3-mbstring php7.3-xml php-imagick php7.3-zip php7.3-bcmath php7.3-soap 
-		php7.3-intl php7.3-readline php7.3-pspell php7.3-tidy php7.3-xmlrpc php7.3-xsl
-		php7.3-opcache php-apcu	
+		php"$PHPVER" php"$PHPVER"-fpm php"$PHPVER"-common
+		php"$PHPVER"-common php"$PHPVER"-cli php"$PHPVER"-dev php"$PHPVER"-pgsql php"$PHPVER"-sqlite3 php"$PHPVER"-gd php"$PHPVER"-curl php-memcached 
+		php"$PHPVER"-imap php"$PHPVER"-mbstring php"$PHPVER"-xml php-imagick php"$PHPVER"-zip php"$PHPVER"-bcmath php"$PHPVER"-soap 
+		php"$PHPVER"-intl php"$PHPVER"-readline php"$PHPVER"-pspell php"$PHPVER"-tidy php"$PHPVER"-xmlrpc php"$PHPVER"-xsl
+		php"$PHPVER"-opcache php-apcu	
 		)
 		log "Info" "Starting to install primary packages for PHP..."
 		for depend in ${apt_php_package[@]}
@@ -215,7 +212,7 @@ php -v
 
 # Lets also check if the php7.3-FPM is running, if not start it
 
-service $phpversion-fpm status
+service php"$PHPVER"-fpm status
 if (( $(ps -ef | grep -v grep | grep "$phpversion-fpm" | wc -l) > 0 ))
 then
 echo "$service is running"
