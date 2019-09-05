@@ -11,6 +11,18 @@ WWW_ROOT=/var/www/html
 WPATH=$WWW_ROOT/wordpress
 GPGDIR=/tmp/gpg
 
+spinner_loading() {
+    pid=$!
+    spin='-\|/'
+    i=0
+    while kill -0 $pid 2>/dev/null
+    do
+        i=$(( (i+1) %4 ))
+        printf "\r[${spin:$i:1}] " # Add text here, something like "Please be paitent..." maybe?
+        sleep .1
+    done
+}
+
 # Install_if_not program
 install_if_not () {
 if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
