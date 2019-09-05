@@ -740,6 +740,11 @@ EOF
     fi
 }
 ## bash colors
+
+print_text_in_color() {
+	printf "%b%s%b\n" "$1" "$2" "$Color_Off"
+}
+
 # Reset
 Color_Off='\e[0m'       # Text Reset
 
