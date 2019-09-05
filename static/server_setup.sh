@@ -52,7 +52,7 @@ run_static_script adduser
 #    echo "Ubuntu version $DISTRO must be between 16.04 - 16.04.4"
 #    exit
 #fi
-install_if_not install lshw
+
 # Change DNS
 install_if_not resolvconf
 yes | dpkg-reconfigure --frontend=noninteractive resolvconf
