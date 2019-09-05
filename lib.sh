@@ -13,7 +13,7 @@ GPGDIR=/tmp/gpg
 
 # Ubuntu OS
 DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
-OS=$(grep -ic "Ubuntu" /etc/issue.net)
+OS=$(grep -ic "debian" /etc/issue.net)
 
 # Network
 [ -n "$FIRST_IFACE" ] && IFACE=$(lshw -c network | grep "logical name" | awk '{print $3; exit}')
