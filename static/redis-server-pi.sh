@@ -152,15 +152,11 @@ service nginx restart
 redis-cli SHUTDOWN
 rm -f /tmp/redis_pass.txt
 
-# Secure Redis
-chown redis:root /etc/redis/redis.conf
-chmod 600 /etc/redis/redis.conf
-
 start_redis
 
 #Start php7
 sudo service php"$PHPVER"-fpm status | cat
-sudo service php"$PHPVER"-fpm restart
+sudo service php"$PHPVER"-fpm restart && sudo service nginx restart
 
 apt update -q4 & spinner_loading
 apt autoremove -y
