@@ -11,6 +11,17 @@ WWW_ROOT=/var/www/html
 WPATH=$WWW_ROOT/wordpress
 GPGDIR=/tmp/gpg
 
+# Install_if_not program
+install_if_not () {
+if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
+then
+    apt update -q4 & spinner_loading && apt install "${1}" -y
+fi
+}
+
+install_if_not net-tools
+install_if_not lshw
+
 # Ubuntu OS
 DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
 OS=$(grep -ic "debian" /etc/issue.net)
