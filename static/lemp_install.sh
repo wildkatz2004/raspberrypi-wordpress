@@ -191,7 +191,7 @@ local phpversion=php7.3
 
 	if check_sys packageManager apt; then
 		apt_php_package=(
-		php"$PHPVER" php"$PHPVER"-fpm php"$PHPVER"-common
+		php"$PHPVER" php"$PHPVER"-fpm php"$PHPVER"-common php"$PHPVER"-mysql
 		php"$PHPVER"-common php"$PHPVER"-cli php"$PHPVER"-dev php"$PHPVER"-pgsql php"$PHPVER"-sqlite3 php"$PHPVER"-gd php"$PHPVER"-curl php-memcached 
 		php"$PHPVER"-imap php"$PHPVER"-mbstring php"$PHPVER"-xml php-imagick php"$PHPVER"-zip php"$PHPVER"-bcmath php"$PHPVER"-soap 
 		php"$PHPVER"-intl php"$PHPVER"-readline php"$PHPVER"-pspell php"$PHPVER"-tidy php"$PHPVER"-xmlrpc php"$PHPVER"-xsl
