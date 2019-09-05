@@ -121,54 +121,54 @@ install_php_depends(){
 configure_php(){
 log "Info" "Beginning php.ini edits."
 	# Make file backups
-	sudo cp /etc/php/7.3/fpm/pool.d/www.conf /etc/php/$php_ver_num/fpm/pool.d/www.conf.bak
-	sudo cp /etc/php/7.3/cli/php.ini /etc/php/$php_ver_num/cli/php.ini.bak
-	sudo cp /etc/php/7.3/fpm/php.ini /etc/php/$php_ver_num/fpm/php.ini.bak
-	sudo cp /etc/php/7.3/fpm/php-fpm.conf /etc/php/$php_ver_num/fpm/php-fpm.conf.bak
-	sudo cp /etc/php/7.3/fpm/pool.d/www.conf /etc/php/$php_ver_num/fpm/pool.d/www.conf.bak
-	sudo cp /etc/php/7.3/cli/php.ini /etc/php/$php_ver_num/cli/php.ini.bak
+	sudo cp /etc/php/$PHPVER/fpm/pool.d/www.conf /etc/php/$PHPVER/fpm/pool.d/www.conf.bak
+	sudo cp /etc/php/$PHPVER/cli/php.ini /etc/php/$PHPVER/cli/php.ini.bak
+	sudo cp /etc/php/$PHPVER/fpm/php.ini /etc/php/$PHPVER/fpm/php.ini.bak
+	sudo cp /etc/php/$PHPVER/fpm/php-fpm.conf /etc/php/$PHPVER/fpm/php-fpm.conf.bak
+	sudo cp /etc/php/$PHPVER/fpm/pool.d/www.conf /etc/php/$PHPVER/fpm/pool.d/www.conf.bak
+	sudo cp /etc/php/$PHPVER/cli/php.ini /etc/php/$PHPVER/cli/php.ini.bak
 	# Configure PHP
-	sudo sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/pm.max_children = .*/pm.max_children = 240/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/pm.start_servers = .*/pm.start_servers = 20/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/pm.min_spare_servers = .*/pm.min_spare_servers = 10/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/pm.max_spare_servers = .*/pm.max_spare_servers = 20/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/;pm.max_requests = 500/pm.max_requests = 500/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/output_buffering =.*/output_buffering = 'Off'/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s|max_execution_time =.*|max_execution_time = 360|g" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s|cgi.fix_pathinfo =.*|cgi.fix_pathinfo=0|g" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/max_input_time =.*/max_input_time = 3600/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/post_max_size =.*/post_max_size = 110M/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/max_file_uploads =.*/max_file_uploads = 100/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/;session.cookie_secure.*/session.cookie_secure = True/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/output_buffering =.*/output_buffering = 'Off'/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s|max_execution_time =.*|max_execution_time = 360|g" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/max_input_time =.*/max_input_time = 3600/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/post_max_size =.*/post_max_size = 110M/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/upload_max_filesize =.*/upload_max_filesize = 256M/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/max_file_uploads =.*/max_file_uploads = 100/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;session.cookie_secure.*/session.cookie_secure = True/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.enable=.*/opcache.enable=1/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.enable_cli=.*/opcache.enable_cli=1/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.memory_consumption=.*/opcache.memory_consumption=128/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.interned_strings_buffer=.*/opcache.interned_strings_buffer=8/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.max_accelerated_files=.*/opcache.max_accelerated_files=10000/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.revalidate_freq=.*/opcache.revalidate_freq=1/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;opcache.save_comments=.*/opcache.save_comments=1/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;emergency_restart_threshold =.*/emergency_restart_threshold = 10/" /etc/php/$php_ver_num/fpm/php-fpm.conf
-	sudo sed -i "s/;emergency_restart_interval =.*/emergency_restart_interval = 1m/" /etc/php/$php_ver_num/fpm/php-fpm.conf
-	sudo sed -i "s/;process_control_timeout =.*/process_control_timeout = 10s/" /etc/php/$php_ver_num/fpm/php-fpm.conf
-	sudo sed -i "s|allow_url_fopen =.*|allow_url_fopen = On|g" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s|file_uploads =.*|file_uploads = On|g" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s|cgi.fix_pathinfo =.*|cgi.fix_pathinfo=0|g" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/display_errors = .*/display_errors = On/" /etc/php/$php_ver_num/cli/php.ini
-	sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL \& ~E_NOTICE \& ~E_STRICT \& ~E_DEPRECATED/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/display_errors = .*/display_errors = Off/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/$php_ver_num/fpm/php.ini
-	sudo sed -i "s/pm.max_children = .*/pm.max_children = 240/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
-	sudo sed -i "s/pm.start_servers = .*/pm.start_servers = 20/" /etc/php/$php_ver_num/fpm/pool.d/www.conf
+	sudo sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/pm.max_children = .*/pm.max_children = 240/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/pm.start_servers = .*/pm.start_servers = 20/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/pm.min_spare_servers = .*/pm.min_spare_servers = 10/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/pm.max_spare_servers = .*/pm.max_spare_servers = 20/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/;pm.max_requests = 500/pm.max_requests = 500/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/output_buffering =.*/output_buffering = 'Off'/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s|max_execution_time =.*|max_execution_time = 360|g" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s|cgi.fix_pathinfo =.*|cgi.fix_pathinfo=0|g" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/max_input_time =.*/max_input_time = 3600/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/post_max_size =.*/post_max_size = 110M/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/max_file_uploads =.*/max_file_uploads = 100/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/;session.cookie_secure.*/session.cookie_secure = True/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/output_buffering =.*/output_buffering = 'Off'/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s|max_execution_time =.*|max_execution_time = 360|g" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/max_input_time =.*/max_input_time = 3600/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/post_max_size =.*/post_max_size = 110M/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/upload_max_filesize =.*/upload_max_filesize = 256M/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/max_file_uploads =.*/max_file_uploads = 100/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;session.cookie_secure.*/session.cookie_secure = True/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.enable=.*/opcache.enable=1/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.enable_cli=.*/opcache.enable_cli=1/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.memory_consumption=.*/opcache.memory_consumption=128/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.interned_strings_buffer=.*/opcache.interned_strings_buffer=8/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.max_accelerated_files=.*/opcache.max_accelerated_files=10000/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.revalidate_freq=.*/opcache.revalidate_freq=1/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;opcache.save_comments=.*/opcache.save_comments=1/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;emergency_restart_threshold =.*/emergency_restart_threshold = 10/" /etc/php/$PHPVER/fpm/php-fpm.conf
+	sudo sed -i "s/;emergency_restart_interval =.*/emergency_restart_interval = 1m/" /etc/php/$PHPVER/fpm/php-fpm.conf
+	sudo sed -i "s/;process_control_timeout =.*/process_control_timeout = 10s/" /etc/php/$PHPVER/fpm/php-fpm.conf
+	sudo sed -i "s|allow_url_fopen =.*|allow_url_fopen = On|g" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s|file_uploads =.*|file_uploads = On|g" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s|cgi.fix_pathinfo =.*|cgi.fix_pathinfo=0|g" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/display_errors = .*/display_errors = On/" /etc/php/$PHPVER/cli/php.ini
+	sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL \& ~E_NOTICE \& ~E_STRICT \& ~E_DEPRECATED/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/display_errors = .*/display_errors = Off/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/$PHPVER/fpm/php.ini
+	sudo sed -i "s/pm.max_children = .*/pm.max_children = 240/" /etc/php/$PHPVER/fpm/pool.d/www.conf
+	sudo sed -i "s/pm.start_servers = .*/pm.start_servers = 20/" /etc/php/$PHPVER/fpm/pool.d/www.conf
 	#Tune PHP-FPM pool settings
 	#sed -i "s/;listen\.mode.*/listen.mode = 0666/" /etc/php/7.3/fpm/pool.d/www.conf
 	#sed -i "s/;request_terminate_timeout.*/request_terminate_timeout = 60/" /etc/php/7.3/fpm/pool.d/www.conf
