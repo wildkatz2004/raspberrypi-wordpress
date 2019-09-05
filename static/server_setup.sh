@@ -170,9 +170,9 @@ else
 	printf "${Green}OK, moving to next step...${Color_Off}\n" 
 fi
 
-
-
-log "Info" "Setup unattended security upgrades..."
+#############################################################################
+unattended-upgrades()
+{
 sudo apt-get install unattended-upgrades
 # Following are additional software required
 # we only need mailutils or bsd-mailx, choose 1
@@ -225,17 +225,33 @@ APT::Periodic::Unattended-Upgrade "1";
 EOF
 #sudo unattended-upgrade -d -v --dry-run
 sudo dpkg-reconfigure --priority=low unattended-upgrades
-log "Info" "Completed setup unattended security upgrades..."
+
+}
+
+#############################################################################
+
+# Configure unattended security upgrades
+if [[ "yes" == $(ask_yes_or_no "Begin unattended security upgrades...?") ]]
+then
+	log "Info" "Setup unattended security upgrades..."
+	unattended-upgrades
+	log "Info" "Completed setup unattended security upgrades..."
+else
+	printf "${Green}OK, moving to next step...${Color_Off}\n" 
+fi
 
 # Install Figlet
 apt install figlet -y
 
-# Create VirtualHost Files
-log "Info" "Preparing to Create VirtualHost Files..."
-any_key "Press any key to continue the script..."
-run_static_script create_vhost_files
-log "Info" "Completed preparing Create VirtualHost Files..."
-
+# Configure VirtualHost Files
+if [[ "yes" == $(ask_yes_or_no "Begin creating VirtualHost Files......?") ]]
+then
+	log "Info" "Preparing to Create VirtualHost Files..."
+	run_static_script create_vhost_files
+	log "Info" "Completed preparing Create VirtualHost Files..."
+else
+	printf "${Green}OK, moving to next step...${Color_Off}\n" 
+fi
 
 # Enable UTF8mb4 (4-byte support)
 #log "Info" "Will attempt to Enable UTF8mb4 ..."
