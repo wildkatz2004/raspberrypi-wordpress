@@ -30,10 +30,10 @@ GATEWAY=$(route -n|grep "UG"|grep -v "UGH"|cut -f 10 -d " ")
 CLIENTSIDEIP=$(echo $SSH_CLIENT | awk '{ print $1}')
 
 # Repo
-GITHUB_REPO="https://raw.githubusercontent.com/wildkatz2004/wordpress-vm/master"
+GITHUB_REPO="https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master"
 STATIC="$GITHUB_REPO/static"
 LETS_ENC="$GITHUB_REPO/lets-encrypt"
-ISSUES="https://github.com/wildkatz2004/wordpress-vm/issues"
+ISSUES="https://github.com/wildkatz2004/raspberrypi-wordpress/issues"
 APP="$GITHUB_REPO/apps"
 
 # User information
