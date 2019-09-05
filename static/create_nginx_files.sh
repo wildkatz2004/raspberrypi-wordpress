@@ -25,12 +25,12 @@ server {
     listen [::]:443 ssl http2;
     
     ## Your website name goes here.
-    # server_name example.com;
+    server_name ${hostname -I};
     ## Your only path reference.
     root $WPATH;
     ## This should be in your http block and if it is, it's not needed here.
     index index.php;
-    resolver $GATEWAY;
+    #resolver $GATEWAY;
     
      ## Show real IP behind proxy (change to the proxy IP)
 #    set_real_ip_from  $GATEWAY/24;
@@ -112,12 +112,12 @@ server {
     listen [::]:80;
     
     ## Your website name goes here.
-    # server_name example.com;
+    server_name ${hostname -I};
     ## Your only path reference.
     root $WPATH;
     ## This should be in your http block and if it is, it's not needed here.
     index index.php;
-    resolver $GATEWAY;
+    # resolver $GATEWAY;
     
     ## Show real IP behind proxy (change to the proxy IP)
 #    set_real_ip_from  $GATEWAY/24;
@@ -162,6 +162,17 @@ server {
                 expires max;
                 log_not_found off;
      }
+
+    ## Begin - Security
+    # deny all direct access for these folders
+    location ~* /(.git|cache|bin|logs|backups|tests)/.*$ { return 403; }
+    # deny running scripts inside core system folders
+    location ~* /(system|vendor)/.*\.(txt|xml|md|html|yaml|php|pl|py|cgi|twig|sh|bat)$ { return 403; }
+    # deny running scripts inside user folder
+    location ~* /user/.*\.(txt|md|yaml|php|pl|py|cgi|twig|sh|bat)$ { return 403; }
+    # deny access to specific files in the root folder
+    location ~ /(LICENSE.txt|composer.lock|composer.json|nginx.conf|web.config|htaccess.txt|\.htaccess) { return 403; }
+    ## End - Security
 }
 HTTP_CREATE
 print_text_in_color "$IGreen" "$HTTP_CONF was successfully created"
