@@ -51,7 +51,7 @@ CREATE USER '$WPDBUSER'@'localhost' IDENTIFIED BY '$WPDBPASS';
 GRANT ALL PRIVILEGES ON $WPDBNAME.* TO '$WPDBUSER'@'localhost';
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
-wp_cli_cmd core config --dbname=$WPDBNAME --dbuser=$WPDBUSER --dbpass="$WPDBPASS" --dbhost=localhost --extra-php <<PHP
+wp_cli_cmd core config --dbname=$WPDBNAME --dbuser=$WPDBUSER --dbpass="$WPDBPASS" --dbhost=localhost --path=$WPATH --extra-php <<PHP
 /** REDIS PASSWORD */
 define( 'WP_REDIS_PASSWORD', '$REDIS_PASS' );
 /** REDIS CLIENT */
