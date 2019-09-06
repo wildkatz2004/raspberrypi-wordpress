@@ -91,21 +91,21 @@ wp core version --allow-root
 sleep 3
 
 # delete akismet and hello dolly
-wp_cli_cmd plugin delete akismet
-wp_cli_cmd plugin delete hello
+wp_cli_cmd plugin delete akismet -path=$WPATH --allow-root
+wp_cli_cmd plugin delete hello -path=$WPATH --allow-root
 
 # Install Apps
-wp_cli_cmd plugin install wp-mail-smtp --activate
-wp_cli_cmd plugin install google-captcha --activate
-wp_cli_cmd plugin install redis-cache --activate
-wp_cli_cmd plugin install opcache --activate
+wp_cli_cmd plugin install wp-mail-smtp --activate -path=$WPATH --allow-root
+wp_cli_cmd plugin install google-captcha --activate -path=$WPATH --allow-root
+wp_cli_cmd plugin install redis-cache --activate -path=$WPATH --allow-root
+wp_cli_cmd plugin install opcache --activate -path=$WPATH --allow-root
 #wp plugin install --allow-root all-in-one-wp-migration --activate
 
 #sed -i "s|define( 'AI1WM_MAX_FILE_SIZE', 2 << 28 )|define( 'AI1WM_MAX_FILE_SIZE', 536870912 * 20 )|g" /var/www/html/wordpress/wp-content/plugins/all-in-one-wp-migration/constants.php
 
 # set pretty urls
-wp_cli_cmd rewrite structure '/%postname%/' --hard
-wp_cli_cmd rewrite flush --hard
+wp_cli_cmd rewrite structure '/%postname%/' --hard --allow-root
+wp_cli_cmd rewrite flush --hard --allow-root
 }
 
 htaccess_hardening(){
@@ -175,7 +175,6 @@ wordpress_install
 log "Info" "WordPress install completed..."
 
 # Secure permissions
-run_static_script wp-permissions
 log "Info" "Start WordPress permission script..."
 run_static_script wp-permissions
 log "Info" "WordPress permissions completed..."
