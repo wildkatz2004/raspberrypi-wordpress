@@ -16,7 +16,9 @@ cur_dir=`pwd`
 #lamp main process
 lamp(){
 
-  run_static_script server_setup
+#Install tools
+install_tool
+run_static_script server_setup
 }
 
 #Run it
