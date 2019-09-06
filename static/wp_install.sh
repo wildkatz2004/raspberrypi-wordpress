@@ -5,7 +5,7 @@ true
 MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 unset MYCNFPW
 
-print_text_in_color "$IGreen" "Your new MARIADB root password is: $MARIADBMYCNFPASS"
+print_text_in_color "$IGreen" "Your MARIADB root password is: $MARIADBMYCNFPASS"
 # Run WordPress Install Function
 wordpress_install(){
 
