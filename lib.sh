@@ -3,23 +3,77 @@
 true
 # see https://github.com/koalaman/shellcheck/wiki/Directive
 
-## variables
+##Functions
 
-# Dirs
-SCRIPTS=/var/scripts
-WWW_ROOT=/var/www/html
-WPATH=$WWW_ROOT/wordpress
-GPGDIR=/tmp/gpg
+#Check system
+check_sys(){
+    local checkType=${1}
+    local value=${2}
 
-install_req_pgs() {
-if [ "$(dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed")" != "1" ]
-then
-    apt update && apt install "${1}" -y 
-    exit 1
-fi
+    local release=''
+    local systemPackage=''
+
+    if [[ -f /etc/redhat-release ]]; then
+        release="centos"
+        systemPackage="yum"
+    elif cat /etc/issue | grep -Eqi "debian"; then
+        release="debian"
+        systemPackage="apt"
+    elif cat /etc/issue | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+        systemPackage="apt"
+    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+        systemPackage="yum"
+    elif cat /proc/version | grep -Eqi "debian"; then
+        release="debian"
+        systemPackage="apt"
+    elif cat /proc/version | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+        systemPackage="apt"
+    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+        systemPackage="yum"
+    fi
+
+    if [[ ${checkType} == "sysRelease" ]]; then
+        if [ "$value" == "$release" ]; then
+            return 0
+        else
+            return 1
+        fi
+    elif [[ ${checkType} == "packageManager" ]]; then
+        if [ "$value" == "$systemPackage" ]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
 }
 
-install_req_pgs spin
+check_command_exist(){
+    if [ ! "$(command -v "${1}")" ]; then
+        log "Error" "${1} is not installed, please install it and try again."
+        exit 1
+    fi
+}
+
+#Install tools
+install_tool(){
+    log "Info" "Starting to install development tools..."
+    if check_sys packageManager apt; then
+        apt-get -y update > /dev/null 2>&1
+        apt-get -y install gcc g++ make wget perl lshw spin curl bzip2 libreadline-dev net-tools python python-dev cron ca-certificates > /dev/null 2>&1
+    fi
+    log "Info" "Install development tools completed..."
+
+    check_command_exist "gcc"
+    check_command_exist "g++"
+    check_command_exist "make"
+    check_command_exist "wget"
+    check_command_exist "perl"
+    check_command_exist "netstat"
+}
 
 spinner_loading() {
     pid=$!
@@ -49,8 +103,12 @@ then
 fi
 }
 
-install_if_not net-tools
-install_if_not lshw
+## variables
+# Dirs
+SCRIPTS=/var/scripts
+WWW_ROOT=/var/www/html
+WPATH=$WWW_ROOT/wordpress
+GPGDIR=/tmp/gpg
 
 # Ubuntu OS
 DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
@@ -133,6 +191,9 @@ APACHE2=/etc/apache2/apache2.conf
 
 ## functions
 
+print_text_in_color() {
+	printf "%b%s%b\n" "$1" "$2" "$Color_Off"
+}
 # If script is running as root?
 #
 # Example:
@@ -222,13 +283,6 @@ log(){
     fi
 }
 
-# Install_if_not program
-install_if_not () {
-if [[ "$(is_this_installed "${1}")" != "${1} is installed, it must be a clean server." ]]
-then
-    apt update -q4 & spinner_loading && apt install "${1}" -y
-fi
-}
 
 # Test RAM size 
 # Call it like this: ram_check [amount of min RAM in GB] [for which program]
@@ -457,17 +511,6 @@ version_gt() {
     [[ $v1 > $v2 ]]
 }
 
-spinner_loading() {
-    pid=$!
-    spin='-\|/'
-    i=0
-    while kill -0 $pid 2>/dev/null
-    do
-        i=$(( (i+1) %4 ))
-        printf "\r[${spin:$i:1}] " # Add text here, something like "Please be paitent..." maybe?
-        sleep .1
-    done
-}
 
 any_key() {
     local PROMPT="$1"
@@ -475,12 +518,6 @@ any_key() {
     echo
 }
 
-check_command_exist(){
-    if [ ! "$(command -v "${1}")" ]; then
-        log "Error" "${1} is not installed, please install it and try again."
-        exit 1
-    fi
-}
 
 check_installed(){
     local cmd=${1}
@@ -493,76 +530,7 @@ check_installed(){
     fi
 }
 
-check_ram(){
-    get_os_info
-    if [ ${ramsum} -lt 480 ]; then
-        log "Error" "Not enough memory. The LAMP installation needs memory: ${tram}MB*RAM + ${swap}MB*SWAP >= 480MB"
-        exit 1
-    fi
-    [ ${ramsum} -lt 600 ] && disable_fileinfo="--disable-fileinfo" || disable_fileinfo=""
-}
 
-ubuntuversion(){
-    if check_sys sysRelease ubuntu; then
-        local version=$( get_opsy )
-        local code=${1}
-        echo ${version} | grep -q "${code}"
-        if [ $? -eq 0 ]; then
-            return 0
-        else
-            return 1
-        fi
-    else
-        return 1
-    fi
-}
-
-
-#Check system
-check_sys(){
-    local checkType=${1}
-    local value=${2}
-
-    local release=''
-    local systemPackage=''
-
-    if [[ -f /etc/redhat-release ]]; then
-        release="centos"
-        systemPackage="yum"
-    elif cat /etc/issue | grep -Eqi "debian"; then
-        release="debian"
-        systemPackage="apt"
-    elif cat /etc/issue | grep -Eqi "ubuntu"; then
-        release="ubuntu"
-        systemPackage="apt"
-    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
-        release="centos"
-        systemPackage="yum"
-    elif cat /proc/version | grep -Eqi "debian"; then
-        release="debian"
-        systemPackage="apt"
-    elif cat /proc/version | grep -Eqi "ubuntu"; then
-        release="ubuntu"
-        systemPackage="apt"
-    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
-        release="centos"
-        systemPackage="yum"
-    fi
-
-    if [[ ${checkType} == "sysRelease" ]]; then
-        if [ "$value" == "$release" ]; then
-            return 0
-        else
-            return 1
-        fi
-    elif [[ ${checkType} == "packageManager" ]]; then
-        if [ "$value" == "$systemPackage" ]; then
-            return 0
-        else
-            return 1
-        fi
-    fi
-}
 
 get_ip(){
     local IP=$( ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1 )
@@ -607,7 +575,44 @@ get_php_version(){
     local phpConfig=${1}
     ${phpConfig} --version | cut -d'.' -f1-2
 }
+check_ram(){
+    get_os_info
+    if [ ${ramsum} -lt 480 ]; then
+        log "Error" "Not enough memory. The LAMP installation needs memory: ${tram}MB*RAM + ${swap}MB*SWAP >= 480MB"
+        exit 1
+    fi
+    [ ${ramsum} -lt 600 ] && disable_fileinfo="--disable-fileinfo" || disable_fileinfo=""
+}
 
+ubuntuversion(){
+    if check_sys sysRelease ubuntu; then
+        local version=$( get_opsy )
+        local code=${1}
+        echo ${version} | grep -q "${code}"
+        if [ $? -eq 0 ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+debianversion(){
+    if check_sys sysRelease debian; then
+        local version=$( get_opsy )
+        local code=${1}
+        echo ${version} | grep -q "${code}"
+        if [ $? -eq 0 ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
 is_64bit(){
     if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
         return 0
@@ -619,7 +624,7 @@ display_os_info(){
     clear
     echo
     echo "+-------------------------------------------------------------------+"
-    echo "| Auto Install LAMP(On Azure Unbuntu 16.04)                         |"
+    echo "| Auto Install LEMP(On Raspberry Pi 4)                              |"
     echo "|                                                                   |"
     echo "|                                                                   |"
     echo "+-------------------------------------------------------------------+"
@@ -649,22 +654,7 @@ check_command_exist(){
     fi
 }
 
-#Install tools
-install_tool(){
-    log "Info" "Starting to install development tools..."
-    if check_sys packageManager apt; then
-        apt-get -y update > /dev/null 2>&1
-        apt-get -y install gcc g++ make wget perl curl bzip2 libreadline-dev net-tools python python-dev cron ca-certificates > /dev/null 2>&1
-    fi
-    log "Info" "Install development tools completed..."
 
-    check_command_exist "gcc"
-    check_command_exist "g++"
-    check_command_exist "make"
-    check_command_exist "wget"
-    check_command_exist "perl"
-    check_command_exist "netstat"
-}
 
 #Pre-installation
 preinstall_lamp(){
@@ -740,10 +730,6 @@ EOF
     fi
 }
 ## bash colors
-
-print_text_in_color() {
-	printf "%b%s%b\n" "$1" "$2" "$Color_Off"
-}
 
 # Reset
 Color_Off='\e[0m'       # Text Reset
