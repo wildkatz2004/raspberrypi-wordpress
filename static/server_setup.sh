@@ -154,33 +154,7 @@ printf "\nGenerating new SSH keys for the server...\n"
 rm -v /etc/ssh/ssh_host_*
 dpkg-reconfigure openssh-server
 
-whiptail --title "Which apps do you want to install?" --checklist --separate-output "Automatically configure and install selected apps\nSelect by pressing the spacebar" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"Fail2ban" "(Extra Bruteforce protection)   " OFF \
-"Webmin" "(Server GUI)       " OFF \
-"Adminer" "(*SQL GUI)       " OFF 2>results
-while read -r -u 9 choice
-do
-    case $choice in
-        Fail2ban)
-            run_app_script fail2ban
 
-        ;;
-
-        Webmin)
-            run_app_script webmin
-
-        ;;
-
-        Adminer)
-            run_app_script adminer
-        ;;
-
-        *)
-        ;;
-    esac
-done 9< results
-rm -f results
-clear
 
 # Update system
 apt-get update -q4 & spinner_loading
@@ -281,6 +255,34 @@ echo
 print_text_in_color "$ICyan" "This is the current administrator(s):"
 wp_cli_cmd user list --role=administrator --path="$WPATH"
 any_key "Press any key to continue..."
+clear
+
+whiptail --title "Which apps do you want to install?" --checklist --separate-output "Automatically configure and install selected apps\nSelect by pressing the spacebar" "$WT_HEIGHT" "$WT_WIDTH" 4 \
+"Fail2ban" "(Extra Bruteforce protection)   " OFF \
+"Webmin" "(Server GUI)       " OFF \
+"Adminer" "(*SQL GUI)       " OFF 2>results
+while read -r -u 9 choice
+do
+    case $choice in
+        Fail2ban)
+            run_app_script fail2ban
+
+        ;;
+
+        Webmin)
+            run_app_script webmin
+
+        ;;
+
+        Adminer)
+            run_app_script adminer
+        ;;
+
+        *)
+        ;;
+    esac
+done 9< results
+rm -f results
 clear
 
 
