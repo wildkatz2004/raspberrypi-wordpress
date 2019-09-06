@@ -2,9 +2,10 @@
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
-. <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
+MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
+unset MYCNFPW
 
-echo mariadb"$MYCNFPW"
+print_text_in_color "$IGreen" "Your new MARIADB root password is: $MARIADBMYCNFPASS"
 # Run WordPress Install Function
 wordpress_install(){
 
@@ -44,7 +45,7 @@ cd "$WPATH"
 check_command wp core download --allow-root --force --debug --path="$WPATH"
 
 # Populate DB
-mysql -u root -p"$MYCNFPW" <<MYSQL_SCRIPT
+mysql -u root -p"$MARIADBMYCNFPASS" <<MYSQL_SCRIPT
 CREATE DATABASE $WPDBNAME CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER '$WPDBUSER'@'localhost' IDENTIFIED BY '$WPDBPASS';
 GRANT ALL PRIVILEGES ON brwordpress.* TO 'wordpressuser'@'localhost' IDENTIFIED BY '$WPDBPASS';
