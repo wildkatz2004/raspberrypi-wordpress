@@ -74,7 +74,27 @@ install_tool(){
     check_command_exist "perl"
     check_command_exist "netstat"
 }
+#Install base packages
+install_base_packages(){
 
+    if check_sys packageManager apt; then
+        apt_depends=(
+		build-essential curl nano wget lftp unzip bzip2 arj nomarch 
+		lzop htop openssl gcc git binutils libmcrypt4 libpcre3-dev make python2.7 
+		python-pip supervisor unattended-upgrades whois zsh imagemagick tcl
+		tree locate software-properties-common screen
+		net-tools ffmpeg ghostscript libfile-fcntllock-perl
+		gnupg2 lsb-release ssl-cert ca-certificates apt-transport-https
+        )
+        log "Info" "Starting to install base packages..."
+        for depend in ${apt_depends[@]}
+        do
+            error_detect_depends "apt-get -y install ${depend}"
+        done
+         log "Info" "Install base packages completed..."
+     fi
+	
+}
 spinner_loading() {
     pid=$!
     spin='-\|/'
