@@ -6,7 +6,9 @@ sed -i "s|#precedence ::ffff:0:0/96  100|precedence ::ffff:0:0/96  100|g" /etc/g
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
-. <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
+FIRST_IFACE=1 && CHECK_CURRENT_REPO=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
+unset FIRST_IFACE
+unset CHECK_CURRENT_REPO
 
 # Check for errors + debug code and abort if something isn't right
 # 1 = ON
@@ -26,14 +28,9 @@ fi
 #cpu_check 1 Wordpress
 
 # Show current user
-echo
-echo "Current user with sudo permissions is: $UNIXUSER".
-echo "This script will set up everything with that user."
-echo "If the field after ':' is blank you are probably running as a pure root user."
-echo "It's possible to install with root, but there will be minor errors."
-echo
-echo "Please create a user with sudo permissions if you want an optimal installation."
-run_static_script adduser
+download_static_script adduser
+bash $SCRIPTS/adduser.sh "wordpress_install.sh"
+rm $SCRIPTS/adduser.sh
 
 
 # Check Ubuntu version
@@ -66,9 +63,6 @@ then
 else
 	printf "${Green}OK, moving to next step...${Color_Off}\n" 
 fi
-
-#Install tools
-install_tool
 
 # Change DNS
 yes | dpkg-reconfigure --frontend=noninteractive resolvconf
