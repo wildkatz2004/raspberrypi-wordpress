@@ -90,29 +90,24 @@ wp core version --allow-root
 sleep 3
 
 # delete akismet and hello dolly
-wp plugin delete akismet --allow-root
-wp plugin delete hello --allow-root
+wp_cli_cmd plugin delete akismet
+wp_cli_cmd plugin delete hello
 
 # Install Apps
-wp plugin install --allow-root opcache
-wp plugin install --allow-root wp-mail-smtp
-wp plugin install --allow-root redis-cache
+wp_cli_cmd plugin install wp-mail-smtp --activate
+wp_cli_cmd plugin install google-captcha --activate
+wp_cli_cmd plugin install redis-cache --activate
+wp_cli_cmd plugin install opcache --activate
 #wp plugin install --allow-root all-in-one-wp-migration --activate
 
 #sed -i "s|define( 'AI1WM_MAX_FILE_SIZE', 2 << 28 )|define( 'AI1WM_MAX_FILE_SIZE', 536870912 * 20 )|g" /var/www/html/wordpress/wp-content/plugins/all-in-one-wp-migration/constants.php
 
-
 # set pretty urls
-wp rewrite structure '/%postname%/' --hard --allow-root
-wp rewrite flush --hard --allow-root
+wp_cli_cmd rewrite structure '/%postname%/' --hard
+wp_cli_cmd rewrite flush --hard
 }
 
-# Run WordPress Install Function
-wordpress_install
-
-# Secure permissions
-run_static_script wp-permissions
-
+htaccess_hardening(){
 # Hardening security
 # create .htaccess to protect uploads directory
 cat > $WPATH/wp-content/uploads/.htaccess <<'EOL'
@@ -130,7 +125,6 @@ allow from all
 </Files>
 EOL
 
-
 # Secure wp-includes
 # https://wordpress.org/support/article/hardening-wordpress/#securing-wp-includes
 {
@@ -147,6 +141,9 @@ echo "# RewriteRule ^wp-includes/* - [F,L]" # Block EVERYTHING
 echo "</IfModule>"
 } >> $WPATH/.htaccess
 
+}
+
+create_poolconf(){
 # Set up a php-fpm pool with a unixsocket
 cat << POOL_CONF > "$PHP_POOL_DIR/www_wordpress.conf"
 [www_wordpress]
@@ -169,6 +166,25 @@ env[TEMP] = /tmp
 security.limit_extensions = .php
 php_admin_value [cgi.fix_pathinfo] = 1
 POOL_CONF
+}
+
+# Run WordPress Install Function
+log "Info" "Beginning WordPress install..."
+wordpress_install
+log "Info" "WordPress install completed..."
+
+# Secure permissions
+run_static_script wp-permissions
+log "Info" "Start WordPress permission script..."
+run_static_script wp-permissions
+log "Info" "WordPress permissions completed..."
+
+log "Info" "Beginning htaccess hardening..."
+htaccess_hardening
+log "Info" "htaccess hardening completed..."
+log "Info" "Create pool conf file..."
+create_poolconf
+log "Info" "pool conf file completed..."    
 
 # Disable regular pool
 mv $PHP_POOL_DIR/www.conf $PHP_POOL_DIR/default_www.config
