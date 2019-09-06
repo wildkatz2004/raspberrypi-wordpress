@@ -62,10 +62,18 @@ check_command_exist(){
 install_tool(){
     log "Info" "Starting to install development tools..."
     if check_sys packageManager apt; then
-        apt-get -y update > /dev/null 2>&1
-        apt-get -y install gcc g++ make wget perl lshw spin curl bzip2 libreadline-dev net-tools python python-dev cron ca-certificates > /dev/null 2>&1
-    fi
-    log "Info" "Install development tools completed..."
+	install_depends=(
+	gcc g++ make wget perl lshw spin dnsutils curl 
+	bzip2 resolvconf ifupdown libreadline-dev net-tools 
+	python python-dev cron ca-certificates
+	)	
+	log "Info" "Starting to development tools..."
+        for depend in ${install_depends[@]}
+        do
+            error_detect_depends "apt-get -y install ${depend}"
+        done
+         log "Info" "Install development tools completed..."
+     fi
 
     check_command_exist "gcc"
     check_command_exist "g++"
@@ -73,16 +81,19 @@ install_tool(){
     check_command_exist "wget"
     check_command_exist "perl"
     check_command_exist "netstat"
+	check_command_exist "nslookup"
+	check_command_exist "ifup"
 }
-#Install base packages
+
 install_base_packages(){
 
     if check_sys packageManager apt; then
         apt_depends=(
-		build-essential curl nano wget lftp unzip bzip2 arj nomarch 
-		lzop htop openssl gcc git binutils libmcrypt4 libpcre3-dev make python2.7 
-		python-pip supervisor unattended-upgrades whois zsh imagemagick tcl
-		tree locate software-properties-common screen
+		build-essential nano lftp unzip arj nomarch 
+		lzop htop openssl git binutils libmcrypt4 libpcre3-dev 
+		unattended-upgrades apt-listchanges apt-config-auto-update
+		python-pip supervisor whois zsh imagemagick tcl
+		tree locate software-properties-common screen mailutils
 		net-tools ffmpeg ghostscript libfile-fcntllock-perl
 		gnupg2 lsb-release ssl-cert ca-certificates apt-transport-https
         )
@@ -95,6 +106,7 @@ install_base_packages(){
      fi
 	
 }
+
 spinner_loading() {
     pid=$!
     spin='-\|/'
