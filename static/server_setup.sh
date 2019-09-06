@@ -85,11 +85,11 @@ fi
 # Check network
 if ! [ -x "$(command -v nslookup)" ]
 then
-    apt install dnsutils -y -q
+    apt-get install dnsutils -y -q
 fi
 if ! [ -x "$(command -v ifup)" ]
 then
-    apt install ifupdown -y -q
+    apt-get install ifupdown -y -q
 fi
 sudo ifdown "$IFACE" && sudo ifup "$IFACE"
 if ! nslookup google.com
@@ -146,7 +146,7 @@ else
 fi
 
 # Install Lamp
-if [[ "yes" == $(ask_yes_or_no "Begin installing LAMP...?") ]]
+if [[ "yes" == $(ask_yes_or_no "Begin installing LEMP...?") ]]
 then
 	log "Info" "Preparing to install LAMP..."
 	run_static_script lemp_install
@@ -321,20 +321,20 @@ sudo find /var/www/html/wordpress -type f -exec chmod 644 {} \;
 sudo chown -R www-data /var/www/html/wordpress
 sudo service php"$PHPVER"-fpm restart && sudo service nginx restart
 # Upgrade
-apt dist-upgrade -y
+apt-get dist-upgrade -y
 
 # Remove LXD (always shows up as failed during boot)
-apt purge lxd -y
+apt-get purge lxd -y
 
 # Cleanup
 CLEARBOOT=$(dpkg -l linux-* | awk '/^ii/{ print $2}' | grep -v -e ''"$(uname -r | cut -f1,2 -d"-")"'' | grep -e '[0-9]' | xargs sudo apt -y purge)
 echo "$CLEARBOOT"
-apt autoremove -y
-apt autoclean
+apt-get autoremove -y
+apt-get autoclean
 find /root "/home/$UNIXUSER" -type f \( -name '*.sh*' -o -name '*.html*' -o -name '*.tar*' -o -name '*.zip*' \) -delete
 
 # Prefer IPv6
-sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
+#sed -i "s|precedence ::ffff:0:0/96  100|#precedence ::ffff:0:0/96  100|g" /etc/gai.conf
 
 # Reboot
 log "Info" "Installation done, system will now reboot..."
