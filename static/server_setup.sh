@@ -237,19 +237,6 @@ else
 	printf "${Green}OK, moving to next step...${Color_Off}\n" 
 fi
 
-# Install Figlet
-apt install figlet -y
-
-# Configure VirtualHost Files
-if [[ "yes" == $(ask_yes_or_no "Begin creating VirtualHost Files......?") ]]
-then
-	log "Info" "Preparing to Create VirtualHost Files..."
-	run_static_script create_vhost_files
-	log "Info" "Completed preparing Create VirtualHost Files..."
-else
-	printf "${Green}OK, moving to next step...${Color_Off}\n" 
-fi
-
 # Enable UTF8mb4 (4-byte support)
 #log "Info" "Will attempt to Enable UTF8mb4 ..."
 #any_key "Press any key to continue the script..."
