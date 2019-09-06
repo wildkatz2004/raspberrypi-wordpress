@@ -25,7 +25,7 @@ server {
     listen [::]:443 ssl http2;
     
     ## Your website name goes here.
-    server_name ${hostname -I};
+    server_name $ADDRESS;
     ## Your only path reference.
     root $WPATH;
     ## This should be in your http block and if it is, it's not needed here.
@@ -112,7 +112,7 @@ server {
     listen [::]:80;
     
     ## Your website name goes here.
-    server_name ${hostname -I};
+    server_name $ADDRESS;
     ## Your only path reference.
     root $WPATH;
     ## This should be in your http block and if it is, it's not needed here.
@@ -328,7 +328,7 @@ sleep 1
 fi
 
 # Enable new config
-ln -s "$NGINX_DEF" /etc/nginx/sites-enabled/
-ln -s "$SSL_CONF" /etc/nginx/sites-enabled/
-ln -s "$HTTP_CONF" /etc/nginx/sites-enabled/
+#ln -s "$NGINX_DEF" /etc/nginx/sites-enabled/
+#ln -s "$SSL_CONF" /etc/nginx/sites-enabled/
+#ln -s "$HTTP_CONF" /etc/nginx/sites-enabled/
 systemctl restart nginx.service
