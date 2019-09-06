@@ -81,8 +81,8 @@ install_tool(){
     check_command_exist "wget"
     check_command_exist "perl"
     check_command_exist "netstat"
-	check_command_exist "nslookup"
-	check_command_exist "ifup"
+    check_command_exist "nslookup"
+    
 }
 
 install_base_packages(){
