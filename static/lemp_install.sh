@@ -180,14 +180,13 @@ log "Info" "Beginning php.ini edits."
 	#chmod +t /var/lib/php/sessions
 	
 	# Restart NGINX
-	sudo service php7.3-fpm restart && sudo service nginx restart
+	sudo service php"$PHPVER"-fpm restart && sudo service nginx restart
 
 log "Info" "Php.ini edits completed."
 }
 
 # Install PHP Function
 install_php(){
-local phpversion=php7.3
 
 	if check_sys packageManager apt; then
 		apt_php_package=(
@@ -213,11 +212,11 @@ php -v
 # Lets also check if the php7.3-FPM is running, if not start it
 
 service php"$PHPVER"-fpm status
-if (( $(ps -ef | grep -v grep | grep "$phpversion-fpm" | wc -l) > 0 ))
+if (( $(ps -ef | grep -v grep | grep php"$PHPVER"-fpm | wc -l) > 0 ))
 then
 echo "$service is running"
 else
-service $phpversion-fpm start  # (if the service isn't running already)
+service php"$PHPVER"-fpm start  # (if the service isn't running already)
 fi
 }
 
