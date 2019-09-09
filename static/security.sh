@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# T&M Hansson IT AB © - 2019, https://www.hanssonit.se/
-
 # REMOVE disable of SC2154 WHEN PUTTING SPAMHAUS IN PRODUCTION (it's just to fixing travis for now)
 # shellcheck disable=2034,2059,SC2154
 true
