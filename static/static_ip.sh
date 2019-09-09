@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# T&M Hansson IT AB © - 2019, https://www.hanssonit.se/
-
 # shellcheck disable=2034,2059
 true
 # shellcheck source=lib.sh
