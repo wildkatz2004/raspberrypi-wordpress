@@ -4,16 +4,6 @@ true
 # shellcheck source=lib.sh
 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 
-# T&M Hansson IT AB © - 2019, https://www.hanssonit.se/
-
-#!/bin/bash
-# shellcheck disable=2034,2059
-true
-# shellcheck source=lib.sh
-. <(curl -sL https://raw.githubusercontent.com/techandme/wordpress-vm/master/lib.sh)
-
-# T&M Hansson IT AB © - 2019, https://www.hanssonit.se/
-
 # Check for errors + debug code and abort if something isn't right
 # 1 = ON
 # 0 = OFF
