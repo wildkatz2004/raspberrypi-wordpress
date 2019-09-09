@@ -5,8 +5,6 @@ true
 MYCNFPW=1 . <(curl -sL https://raw.githubusercontent.com/wildkatz2004/raspberrypi-wordpress/master/lib.sh)
 unset MYCNFPW
 
-# T&M Hansson IT AB © - 2019, https://www.hanssonit.se/
-
 # Check for errors + debug code and abort if something isn't right
 # 1 = ON
 # 0 = OFF
